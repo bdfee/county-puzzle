@@ -1,9 +1,5 @@
 function App() {
-  return (
-    <div className="App">
-      us-map
-    </div>
-  );
+  return <div className="App">us-map</div>
 }
 
-export default App;
+export default App
