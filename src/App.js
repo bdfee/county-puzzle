@@ -1,5 +1,12 @@
+import USMap from './map'
+
 function App() {
-  return <div className="App">us-map</div>
+  // state to manage the counties puzzle logic
+  return (
+    <div className="App">
+      <USMap />
+    </div>
+  )
 }
 
 export default App
