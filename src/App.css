@@ -1,0 +1,11 @@
+.tip-box {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  color: black;
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 9999;
+}

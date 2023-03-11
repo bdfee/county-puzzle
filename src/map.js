@@ -1,96 +1,86 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
+import './App.css'
 
-// on hover with the mouse, console.log the state
-const stateNames = [
-  'Alabama',
-  'Alaska',
-  'Arizona',
-  'Arkansas',
-  'California',
-  'Colorado',
-  'Connecticut',
-  'Delaware',
-  'District of Columbia',
-  'Florida',
-  'Georgia',
-  'Hawaii',
-  'Idaho',
-  'Illinois',
-  'Indiana',
-  'Iowa',
-  'Kansas',
-  'Kentucky',
-  'Louisiana',
-  'Maine',
-  'Maryland',
-  'Massachusetts',
-  'Michigan',
-  'Minnesota',
-  'Mississippi',
-  'Missouri',
-  'Montana',
-  'Nebraska',
-  'Nevada',
-  'New Hampshire',
-  'New Jersey',
-  'New Mexico',
-  'New York',
-  'North Carolina',
-  'North Dakota',
-  'Ohio',
-  'Oklahoma',
-  'Oregon',
-  'Pennsylvania',
-  'Rhode Island',
-  'South Carolina',
-  'South Dakota',
-  'Tennessee',
-  'Texas',
-  'Utah',
-  'Vermont',
-  'Virginia',
-  'Washington',
-  'West Virginia',
-  'Wisconsin',
-  'Wyoming'
-]
+const nonStateIds = ['11', '60', '66', '69', '72', '78']
 
-// const nonStateIds = ['60', '66', '69', '72', '78']
+const randomTranslation = () => {
+  const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
+  const translation = `translate(${Math.floor(Math.random() * 100 * randomNegative())},${Math.floor(
+    Math.random() * 100 * randomNegative()
+  )})`
+  return translation
+}
 
 function USMap() {
   const mapRef = useRef()
   const [targetCounty, setTargetCounty] = useState('')
-  const [targetState, setTargetState] = useState('')
-  const [counties, setCounties] = useState(null)
-  const [states, setStates] = useState(null)
+  const [topology, setTopology] = useState(null)
+  const [locationObj, setLocationObj] = useState({})
+  // const [filteredGeometries, setfilteredGeometries] = useState({})
 
   useEffect(() => {
-    Promise.all([
-      d3.json('https://cdn.jsdelivr.net/npm/us-atlas/states-10m.json'),
-      d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
-    ]).then(([usStates, usCounties]) => {
-      setCounties(usCounties)
-      setStates(usStates)
-    })
+    Promise.all([d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')]).then(
+      ([usTopology]) => {
+        const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
+          const state = geo.id.substring(0, 2)
+          return !nonStateIds.includes(state) ? true : false
+        })
+
+        const fiftyStatesGeo = usTopology.objects.states.geometries.filter(({ id }) => {
+          return !nonStateIds.includes(id) ? true : false
+        })
+
+        const filterTopology = {
+          arcs: usTopology.arcs,
+          bbox: usTopology.bbox,
+          objects: {
+            ...usTopology.objects,
+            counties: { type: 'GeometryCollection', geometries: fiftyStatesCountiesGeo },
+            states: { type: 'GeometryCollection', geometries: fiftyStatesGeo }
+          },
+          transform: usTopology.transform,
+          type: usTopology.type
+        }
+
+        delete filterTopology.objects.nation
+
+        console.log('filter', filterTopology)
+        setTopology(filterTopology)
+        console.log('all', usTopology)
+
+        const locationTracker = {}
+        filterTopology.objects.counties.geometries.map(({ id }) => {
+          const state = id.substring(0, 2)
+          if (state in locationTracker) {
+            locationTracker[state][id] = false
+          } else {
+            locationTracker[state] = { [id]: false }
+          }
+        })
+        setLocationObj(locationTracker)
+      }
+    )
   }, [])
 
   useEffect(() => {
     d3.select(mapRef.current).selectAll('*').remove()
-    const width = 960
-    const height = 600
+    const width = 1080
+    const height = 900
     // Create a projection that maps latitude/longitude coordinates to x/y coordinates
     const projection = d3
       .geoAlbersUsa()
       .translate([width / 2, height / 2])
-      .scale(1000)
+      .scale(1200)
 
     // Create a path generator that converts GeoJSON geometries to SVG path elements
     const pathGenerator = d3.geoPath().projection(projection)
 
     // Create an SVG element and add it to the DOM
     const svg = d3.select(mapRef.current).append('svg').attr('width', width).attr('height', height)
+
+    svg.attr('viewBox', `0 0 ${width} ${height}`) // set the viewBox attribute
 
     const stateColorScale = d3
       .scaleOrdinal()
@@ -149,10 +139,10 @@ function USMap() {
       ])
       .range(d3.schemeCategory10)
 
-    if (states && counties) {
+    if (topology) {
       svg
         .selectAll('.state')
-        .data(topojson.feature(states, states.objects.states).features)
+        .data(topojson.feature(topology, topology.objects.states).features)
         .enter()
         .append('path')
         .attr('class', 'state')
@@ -165,7 +155,7 @@ function USMap() {
       // Create a path element for each count
       const countyPaths = svg
         .selectAll('.county')
-        .data(topojson.feature(counties, counties.objects.counties).features)
+        .data(topojson.feature(topology, topology.objects.counties).features)
         .enter()
         .append('path')
         .attr('class', 'county')
@@ -176,45 +166,44 @@ function USMap() {
         .attr('id', (d) => `county-id-${d.id}`)
         .attr('data-state-id', (d) => `state-id-${d.id.slice(0, 2)}`)
         .attr('data-name', (d) => `${d.properties.name}`)
-        .attr(
-          'transform',
-          () => `translate(${Math.floor(Math.random() * 100)},${Math.floor(Math.random() * 100)})`
-        )
+        .attr('transform', () => randomTranslation())
 
       const dragHandler = d3
         .drag()
         .on('start', function () {
+          // use function so that this is present
+          // class active to bring to the top css
           d3.select(this).raise().classed('active', true)
         })
-        .on('drag', function (event) {
+        .on('drag', function ({ dx, dy }) {
           // Get the current transform value
           const transform = d3.select(this).node().transform.baseVal[0].matrix
-          const tx = transform.e
-          const ty = transform.f
 
-          // Update the transform with the new translation values
-          d3.select(this).attr('transform', `translate(${tx + event.dx},${ty + event.dy})`)
+          const changeX = transform.e
+          const changeY = transform.f
+          console.log('this', changeX, changeY, dx, dy)
+          // add the new translation values to dx
+          d3.select(this).attr('transform', `translate(${changeX + dx},${changeY + dy})`)
         })
         .on('end', function () {
           d3.select(this).classed('active', false)
         })
-
+      console.log('location', locationObj)
+      console.log('topology', topology)
       countyPaths.call(dragHandler)
     }
-  }, [states, counties])
+  }, [topology])
 
   return (
     <div>
+      <div className="tip-box">
+        <h4>Target County: {targetCounty}</h4>
+      </div>
       <div
         ref={mapRef}
         onMouseOver={({ target }) => {
           setTargetCounty(target.getAttribute('data-name'))
-          setTargetState(target.getAttribute('data-state-id'))
         }}></div>
-      <div>
-        <h4>Target State: {stateNames[targetState - 1]}</h4>
-        <h4>Target County: {targetCounty}</h4>
-      </div>
     </div>
   )
 }
