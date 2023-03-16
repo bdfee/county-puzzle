@@ -8,8 +8,7 @@ const randomTranslation = () => {
   const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
   const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
   // reduce y random translate by 50%
-  const translation = `translate(${randomNumber()},${randomNumber() * 0.5})`
-  return translation
+  return `translate(${randomNumber()},${randomNumber() * 0.5})`
 }
 
 function USMap() {
@@ -102,10 +101,9 @@ function USMap() {
     // Create a path generator that converts GeoJSON geometries to SVG path elements
     const pathGenerator = d3.geoPath().projection(projection)
 
-    // Create an SVG element and add it to the DOM
     const svg = d3.select(mapRef.current).append('svg').attr('width', width).attr('height', height)
 
-    // improve color randomization
+    // todo improve color randomization
     const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
     if (topology) {
