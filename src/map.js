@@ -3,56 +3,57 @@ import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import './App.css'
 
-const nonStateIds = ['11', '60', '66', '69', '72', '78']
-
+// scatter puzzle pieces
 const randomTranslation = () => {
   const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
   const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
-  const translation = `translate(${randomNumber()},${randomNumber()})`
-  return translation
+  // reduce y random translate by 50%
+  return `translate(${randomNumber()},${randomNumber() * 0.5})`
 }
 
 function USMap() {
   const mapRef = useRef()
   const [targetCounty, setTargetCounty] = useState('')
   const [topology, setTopology] = useState(null)
-  const [locationObj, setLocationObj] = useState({})
-  // const [click, setClick] = useState(false)
-  // const [filteredGeometries, setfilteredGeometries] = useState({})
+  const [piecesLocated, setPiecesLocated] = useState({})
 
-  const updateLocation = (id, bool) => {
+  // check if pieceLocated obj needs updating, and update
+  const updatePieceLocated = (id, bool) => {
     const state = id.substring(0, 2)
-    const county = locationObj[state][id]
+    const county = piecesLocated[state][id]
 
     if (!bool && county) {
-      locationObj[state][id] = false
+      piecesLocated[state][id] = false
       return
     }
 
     if (bool && !county) {
-      locationObj[state][id] = true
-      if (Object.values(locationObj[state]).every((value) => value === true)) {
+      piecesLocated[state][id] = true
+      if (Object.values(piecesLocated[state]).every((value) => value === true)) {
+        // todo
         console.log('delete county svgs')
       }
     }
-    console.log(locationObj[state])
   }
+
+  const non50StatesIds = ['11', '60', '66', '69', '72', '78']
 
   useEffect(() => {
     async function getTopology() {
       try {
+        // fetch topojson
         const usTopology = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
-
+        // filter out counties in territories and districts
         const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
           const state = geo.id.substring(0, 2)
-          return !nonStateIds.includes(state) ? true : false
+          return !non50StatesIds.includes(state) ? true : false
         })
-
+        // filter out territories and districts
         const fiftyStatesGeo = usTopology.objects.states.geometries.filter(({ id }) => {
-          return !nonStateIds.includes(id) ? true : false
+          return !non50StatesIds.includes(id) ? true : false
         })
 
-        // filter obj
+        // trim down topology obj before setting state
         const filterTopology = {
           arcs: usTopology.arcs,
           bbox: usTopology.bbox,
@@ -66,106 +67,44 @@ function USMap() {
         }
         // prune nation geo off
         delete filterTopology.objects.nation
-
         setTopology(filterTopology)
 
-        const locationTracker = {}
+        // create obj for bool of pieces located
+        const countyLocationTracker = {}
         filterTopology.objects.counties.geometries.map(({ id }) => {
           const state = id.substring(0, 2)
-          if (state in locationTracker) {
-            locationTracker[state][id] = false
+          if (state in countyLocationTracker) {
+            countyLocationTracker[state][id] = false
           } else {
-            locationTracker[state] = { [id]: false }
+            countyLocationTracker[state] = { [id]: false }
           }
         })
-        setLocationObj(locationTracker)
+        setPiecesLocated(countyLocationTracker)
       } catch (error) {
+        // todo
         console.error(error)
       }
     }
     getTopology()
   }, [])
 
-  // useEffect(() => {
-  //   const svg = d3.select(mapRef.current)
-  //   console.log(svg)
-  //   console.log('here')
-  // }, [click])
-
   useEffect(() => {
+    // remove any svg el from previous render
     d3.select(mapRef.current).selectAll('*').remove()
-    const width = 1080
-    const height = 900
-    // Create a projection that maps latitude/longitude coordinates to x/y coordinates
-    const projection = d3
-      .geoAlbersUsa()
-      .translate([width / 2, height / 2])
-      .scale(1200)
+
+    const width = window.outerWidth
+    const height = window.outerHeight
+
+    // geoAlbersUSA projection, center on window/svg
+    const projection = d3.geoAlbersUsa().translate([width / 2, height / 2])
 
     // Create a path generator that converts GeoJSON geometries to SVG path elements
     const pathGenerator = d3.geoPath().projection(projection)
 
-    // Create an SVG element and add it to the DOM
     const svg = d3.select(mapRef.current).append('svg').attr('width', width).attr('height', height)
 
-    svg.attr('viewBox', `0 0 ${width} ${height}`) // set the viewBox attribute
-
-    const stateColorScale = d3
-      .scaleOrdinal()
-      .domain([
-        '01',
-        '02',
-        '04',
-        '05',
-        '06',
-        '08',
-        '09',
-        '10',
-        '11',
-        '12',
-        '13',
-        '15',
-        '16',
-        '17',
-        '18',
-        '19',
-        '20',
-        '21',
-        '22',
-        '23',
-        '24',
-        '25',
-        '26',
-        '27',
-        '28',
-        '29',
-        '30',
-        '31',
-        '32',
-        '33',
-        '34',
-        '35',
-        '36',
-        '37',
-        '38',
-        '39',
-        '40',
-        '41',
-        '42',
-        '44',
-        '45',
-        '46',
-        '47',
-        '48',
-        '49',
-        '50',
-        '51',
-        '53',
-        '54',
-        '55',
-        '56'
-      ])
-      .range(d3.schemeCategory10)
+    // todo improve color randomization
+    const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
     if (topology) {
       svg
@@ -206,7 +145,6 @@ function USMap() {
         .on('drag', function ({ dx, dy }) {
           // Get the current transform value
           const transform = d3.select(this).node().transform.baseVal[0].matrix
-
           const changeX = transform.e
           const changeY = transform.f
           console.log('this', changeX, changeY, dx, dy)
@@ -216,11 +154,7 @@ function USMap() {
         .on('end', function (d) {
           d3.select(this).classed('active', false)
           const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
-          updateLocation(d.subject.id, isLocated)
-
-          // console.log(locationObj)
-          // console.log('id', d.subject.id)
-          // console.log(d3.select(this).attr('transform'))
+          updatePieceLocated(d.subject.id, isLocated)
         })
       countyPaths.call(dragHandler)
     }
@@ -228,7 +162,7 @@ function USMap() {
   return (
     <div>
       <div className="tip-box">
-        <h4>Target County: {targetCounty}</h4>
+        <h4>{targetCounty}</h4>
       </div>
       <div
         ref={mapRef}
