@@ -1,3 +1,8 @@
 .located {
   z-index: 1;
 }
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+}
