@@ -7,9 +7,8 @@ const nonStateIds = ['11', '60', '66', '69', '72', '78']
 
 const randomTranslation = () => {
   const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-  const translation = `translate(${Math.floor(Math.random() * 100 * randomNegative())},${Math.floor(
-    Math.random() * 100 * randomNegative()
-  )})`
+  const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
+  const translation = `translate(${randomNumber()},${randomNumber()})`
   return translation
 }
 
@@ -18,11 +17,32 @@ function USMap() {
   const [targetCounty, setTargetCounty] = useState('')
   const [topology, setTopology] = useState(null)
   const [locationObj, setLocationObj] = useState({})
+  // const [click, setClick] = useState(false)
   // const [filteredGeometries, setfilteredGeometries] = useState({})
 
+  const updateLocation = (id, bool) => {
+    const state = id.substring(0, 2)
+    const county = locationObj[state][id]
+
+    if (!bool && county) {
+      locationObj[state][id] = false
+      return
+    }
+
+    if (bool && !county) {
+      locationObj[state][id] = true
+      if (Object.values(locationObj[state]).every((value) => value === true)) {
+        console.log('delete county svgs')
+      }
+    }
+    console.log(locationObj[state])
+  }
+
   useEffect(() => {
-    Promise.all([d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')]).then(
-      ([usTopology]) => {
+    async function getTopology() {
+      try {
+        const usTopology = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
+
         const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
           const state = geo.id.substring(0, 2)
           return !nonStateIds.includes(state) ? true : false
@@ -32,6 +52,7 @@ function USMap() {
           return !nonStateIds.includes(id) ? true : false
         })
 
+        // filter obj
         const filterTopology = {
           arcs: usTopology.arcs,
           bbox: usTopology.bbox,
@@ -43,12 +64,10 @@ function USMap() {
           transform: usTopology.transform,
           type: usTopology.type
         }
-
+        // prune nation geo off
         delete filterTopology.objects.nation
 
-        console.log('filter', filterTopology)
         setTopology(filterTopology)
-        console.log('all', usTopology)
 
         const locationTracker = {}
         filterTopology.objects.counties.geometries.map(({ id }) => {
@@ -60,9 +79,18 @@ function USMap() {
           }
         })
         setLocationObj(locationTracker)
+      } catch (error) {
+        console.error(error)
       }
-    )
+    }
+    getTopology()
   }, [])
+
+  // useEffect(() => {
+  //   const svg = d3.select(mapRef.current)
+  //   console.log(svg)
+  //   console.log('here')
+  // }, [click])
 
   useEffect(() => {
     d3.select(mapRef.current).selectAll('*').remove()
@@ -185,15 +213,18 @@ function USMap() {
           // add the new translation values to dx
           d3.select(this).attr('transform', `translate(${changeX + dx},${changeY + dy})`)
         })
-        .on('end', function () {
+        .on('end', function (d) {
           d3.select(this).classed('active', false)
+          const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
+          updateLocation(d.subject.id, isLocated)
+
+          // console.log(locationObj)
+          // console.log('id', d.subject.id)
+          // console.log(d3.select(this).attr('transform'))
         })
-      console.log('location', locationObj)
-      console.log('topology', topology)
       countyPaths.call(dragHandler)
     }
   }, [topology])
-
   return (
     <div>
       <div className="tip-box">
