@@ -7,13 +7,12 @@ import './App.css'
 const randomTranslation = () => {
   const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
   const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
-  // reduce y random translate by 50%
-  return `translate(${randomNumber()},${randomNumber() * 0.5})`
+  const translation = `translate(${randomNumber()},${randomNumber()})`
+  return translation
 }
 
 function USMap() {
   const mapRef = useRef()
-  const [targetCounty, setTargetCounty] = useState('')
   const [topology, setTopology] = useState(null)
   const [piecesLocated, setPiecesLocated] = useState({})
 
@@ -24,15 +23,16 @@ function USMap() {
 
     if (!bool && county) {
       piecesLocated[state][id] = false
-      return
+      return false
     }
 
     if (bool && !county) {
       piecesLocated[state][id] = true
-      if (Object.values(piecesLocated[state]).every((value) => value === true)) {
-        // todo
-        console.log('delete county svgs')
-      }
+      return true
+      // if (Object.values(piecesLocated[state]).every((value) => value === true)) {
+      //   // todo
+      //   console.log('delete county svgs')
+      // }
     }
   }
 
@@ -92,8 +92,8 @@ function USMap() {
     // remove any svg el from previous render
     d3.select(mapRef.current).selectAll('*').remove()
 
-    const width = 1200
-    const height = 800
+    const width = window.outerWidth
+    const height = window.outerHeight
 
     // geoAlbersUSA projection, center on window/svg
     const projection = d3
@@ -105,7 +105,7 @@ function USMap() {
     const pathGenerator = d3.geoPath().projection(projection)
 
     const svg = d3.select(mapRef.current).append('svg').attr('width', width).attr('height', height)
-
+    svg.attr('viewBox', `0 0 ${width} ${height}`)
     // todo improve color randomization
     const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
@@ -117,8 +117,6 @@ function USMap() {
         .append('path')
         .attr('class', 'state')
         .attr('d', pathGenerator)
-        .attr('stroke', (d) => stateColorScale(d.id.slice(0, 2)))
-        .attr('stroke-width', 0.5)
         .attr('fill', (d) => stateColorScale(d.id.slice(0, 2)))
         .attr('id', (d) => `${d.id}`)
 
@@ -131,8 +129,8 @@ function USMap() {
         .attr('class', 'county')
         .attr('d', pathGenerator)
         .attr('stroke', (d) => stateColorScale(d.id.slice(0, 2)))
-        .attr('stroke-width', 0.5)
-        .attr('fill', 'whitesmoke')
+        .attr('stroke-width', 0.25)
+        .attr('fill', 'lightgray')
         .attr('id', (d) => `county-id-${d.id}`)
         .attr('data-state-id', (d) => `state-id-${d.id.slice(0, 2)}`)
         .attr('data-name', (d) => `${d.properties.name}`)
@@ -157,7 +155,9 @@ function USMap() {
         .on('end', function (d) {
           d3.select(this).classed('active', false)
           const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
-          // if (isLocated) d3.select(this).attr('fill', 'lightgray')
+          if (isLocated) {
+            d3.select(this).attr('stroke-width', 0.1).attr('stroke', 'lightgray').on('.drag', null)
+          }
           updatePieceLocated(d.subject.id, isLocated)
         })
       countyPaths.call(dragHandler)
@@ -165,14 +165,7 @@ function USMap() {
   }, [topology])
   return (
     <div>
-      <div className="tip-box">
-        <h4>{targetCounty}</h4>
-      </div>
-      <div
-        ref={mapRef}
-        onMouseOver={({ target }) => {
-          setTargetCounty(target.getAttribute('data-name'))
-        }}></div>
+      <div ref={mapRef}></div>
     </div>
   )
 }
