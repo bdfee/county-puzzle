@@ -156,7 +156,11 @@ function USMap() {
           d3.select(this).classed('active', false)
           const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
           if (isLocated) {
-            d3.select(this).attr('stroke-width', 0.1).attr('stroke', 'lightgray').on('.drag', null)
+            d3.select(this)
+              .classed('located', true)
+              .attr('stroke-width', 0.1)
+              .attr('stroke', 'lightgray')
+              .on('.drag', null)
           }
           updatePieceLocated(d.subject.id, isLocated)
         })
