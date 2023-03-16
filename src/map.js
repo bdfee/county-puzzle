@@ -92,11 +92,14 @@ function USMap() {
     // remove any svg el from previous render
     d3.select(mapRef.current).selectAll('*').remove()
 
-    const width = window.outerWidth
-    const height = window.outerHeight
+    const width = 1200
+    const height = 800
 
     // geoAlbersUSA projection, center on window/svg
-    const projection = d3.geoAlbersUsa().translate([width / 2, height / 2])
+    const projection = d3
+      .geoAlbersUsa()
+      .translate([width / 2, height / 2])
+      .scale(1200)
 
     // Create a path generator that converts GeoJSON geometries to SVG path elements
     const pathGenerator = d3.geoPath().projection(projection)
@@ -129,7 +132,7 @@ function USMap() {
         .attr('d', pathGenerator)
         .attr('stroke', (d) => stateColorScale(d.id.slice(0, 2)))
         .attr('stroke-width', 0.5)
-        .attr('fill', 'lightgray')
+        .attr('fill', 'whitesmoke')
         .attr('id', (d) => `county-id-${d.id}`)
         .attr('data-state-id', (d) => `state-id-${d.id.slice(0, 2)}`)
         .attr('data-name', (d) => `${d.properties.name}`)
@@ -154,6 +157,7 @@ function USMap() {
         .on('end', function (d) {
           d3.select(this).classed('active', false)
           const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
+          // if (isLocated) d3.select(this).attr('fill', 'lightgray')
           updatePieceLocated(d.subject.id, isLocated)
         })
       countyPaths.call(dragHandler)
