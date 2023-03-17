@@ -95,21 +95,20 @@ function USMap() {
   const dragHandler = d3
     .drag()
     .on('start', function () {
-      // use function so that this is present
-      // class active to bring to the top css
-      d3.select(this).raise().classed('active', true)
+      setTooltipText('')
+      // class active to bring to the top
+      d3.select(this).raise().classed('active', true).attr('pointer-events', 'none')
     })
     .on('drag', function ({ dx, dy }) {
       // Get the current transform value
       const transform = d3.select(this).node().transform.baseVal[0].matrix
       const changeX = transform.e
       const changeY = transform.f
-      console.log('this', changeX, changeY, dx, dy)
       // add the new translation values to dx
       d3.select(this).attr('transform', `translate(${changeX + dx},${changeY + dy})`)
     })
     .on('end', function (d) {
-      d3.select(this).classed('active', false)
+      d3.select(this).classed('active', false).attr('pointer-events', 'all')
       const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
       if (isLocated) {
         // remove drag handler and adjust stroke style when correctly located
@@ -123,15 +122,18 @@ function USMap() {
     })
 
   function handleMouseOver(e, d) {
+    console.log('mouse over')
     setTooltipCoords([e.clientX, e.clientY])
     setTooltipText(d.properties.name)
   }
 
   function handleMouseMove(e) {
+    console.log('mouse move')
     setTooltipCoords([e.clientX, e.clientY])
   }
 
-  function handleMouseOut() {
+  function handleMouseOut(e) {
+    console.log('mouse out', e)
     setTooltipText('')
   }
 
@@ -151,8 +153,13 @@ function USMap() {
     // Create a path generator that converts GeoJSON geometries to SVG path elements
     const pathGenerator = d3.geoPath().projection(projection)
 
-    const svg = d3.select(mapRef.current).append('svg').attr('width', width).attr('height', height)
-    svg.attr('viewBox', `0 0 ${width} ${height}`)
+    const svg = d3
+      .select(mapRef.current)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`)
+
     // todo improve color randomization
     const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
@@ -184,16 +191,18 @@ function USMap() {
         .attr('transform', () => randomTranslation())
         .on('mouseover', (e, d) => handleMouseOver(e, d))
         .on('mousemove', (e) => handleMouseMove(e))
-        .on('mousedown', () => setTooltipText(''))
-        .on('mouseout', handleMouseOut)
+        .on('mouseout', (e) => handleMouseOut(e))
+
+      // svg.on('mousedown', () => console.log('down')).on('mouseup', () => console.log('up'))
 
       countyPaths.call(dragHandler)
     }
   }, [topology])
+
   return (
     <div>
       <div className="tooltip" style={tooltipStyle}>
-        {tooltipText}
+        {tooltipText.length ? tooltipText : ''}
       </div>
       <div ref={mapRef}></div>
     </div>
