@@ -96,8 +96,10 @@ function USMap() {
     .drag()
     .on('start', function () {
       setTooltipText('')
-      // class active to bring to the top
-      d3.select(this).raise().classed('active', true).attr('pointer-events', 'none')
+      // class active to bring to the top, remove tooltip
+      d3.select(this).raise().classed('active', true)
+      // remove tool tip on other counties
+      d3.selectAll('.county').attr('pointer-events', 'none')
     })
     .on('drag', function ({ dx, dy }) {
       // Get the current transform value
@@ -108,7 +110,10 @@ function USMap() {
       d3.select(this).attr('transform', `translate(${changeX + dx},${changeY + dy})`)
     })
     .on('end', function (d) {
-      d3.select(this).classed('active', false).attr('pointer-events', 'all')
+      d3.select(this).classed('active', false)
+      // add tool tips
+      d3.selectAll('.county').attr('pointer-events', 'all')
+      // if county translate is 0 0, it is located correctly
       const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
       if (isLocated) {
         // remove drag handler and adjust stroke style when correctly located
@@ -122,18 +127,15 @@ function USMap() {
     })
 
   function handleMouseOver(e, d) {
-    console.log('mouse over')
     setTooltipCoords([e.clientX, e.clientY])
     setTooltipText(d.properties.name)
   }
 
   function handleMouseMove(e) {
-    console.log('mouse move')
     setTooltipCoords([e.clientX, e.clientY])
   }
 
-  function handleMouseOut(e) {
-    console.log('mouse out', e)
+  function handleMouseOut() {
     setTooltipText('')
   }
 
@@ -191,9 +193,7 @@ function USMap() {
         .attr('transform', () => randomTranslation())
         .on('mouseover', (e, d) => handleMouseOver(e, d))
         .on('mousemove', (e) => handleMouseMove(e))
-        .on('mouseout', (e) => handleMouseOut(e))
-
-      // svg.on('mousedown', () => console.log('down')).on('mouseup', () => console.log('up'))
+        .on('mouseout', handleMouseOut)
 
       countyPaths.call(dragHandler)
     }
