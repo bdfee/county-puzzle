@@ -160,27 +160,6 @@ function USMap() {
       .attr('height', height)
       .attr('viewBox', `0 0 ${width} ${height}`)
 
-    // Set up the zoom behavior
-    //     The d3.zoom() method provides several event listener functions that can be used to customize the behavior of zooming with mouse and keyboard inputs.
-    // Here are some of the available event listener functions for zoom behavior:
-    // on("zoom"): This event listener function is called whenever a zoom event occurs, such as when the user scrolls with the mouse wheel or pinches on a touch device.
-    // on("zoom.start"): This event listener function is called when the zoom event starts, such as when the user presses the mouse button or touches the screen to start a zoom action.
-    // on("zoom.end"): This event listener function is called when the zoom event ends, such as when the user releases the mouse button or lifts their finger from the screen to complete a zoom action.
-    // on("zoom.zoom"): This event listener function is called whenever the zoom level changes, such as when the user scrolls or pinches to zoom in or out.
-    // on("zoom.translate"): This event listener function is called whenever the visualization is translated, such as when the user drags the mouse or uses arrow keys to pan the visualization.
-    // on("zoom.scale"): This event listener function is called whenever the scale factor changes, such as when the user zooms in or out with the mouse or keyboard.
-    // By customizing the behavior of these event listeners, you can create a zoom interaction that suits your specific use case and user experience.
-    const zoom = d3
-      .zoom()
-      .scaleExtent([1, 8])
-      .on('zoom', (event) => {
-        const { transform } = event
-        svg.attr('transform', transform)
-      })
-
-    // Attach the zoom behavior to the SVG element
-    svg.call(zoom)
-
     // todo improve color randomization
     const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
