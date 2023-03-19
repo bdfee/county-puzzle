@@ -3,37 +3,34 @@ import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import './App.css'
 
-// scatter puzzle pieces
-const randomTranslation = () => {
-  const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-  const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
-  const translation = `translate(${randomNumber()},${randomNumber()})`
-  return translation
-}
-
 function USMap() {
   const mapRef = useRef()
   const [topology, setTopology] = useState(null)
-  const [puzzleProgress, setPuzzleProgress] = useState({})
+  const [countyCoords, setCountyCoords] = useState({})
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
-
   const tooltipStyle = { left: tooltipCoords[0], top: tooltipCoords[1] }
 
   // update puzzle progress obj when county is located
   const updateProgress = (id) => {
     const state = id.substring(0, 2)
-    setPuzzleProgress({ ...puzzleProgress, [state]: { ...puzzleProgress[state], [id]: true } })
+    setCountyCoords({ ...countyCoords, [state]: { ...countyCoords[state], [id]: true } })
   }
 
-  const non50StatesIds = ['11', '60', '66', '69', '72', '78']
-
   useEffect(() => {
+    // scatter puzzle pieces
+    const randomTranslation = () => {
+      const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
+      const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
+      return [randomNumber(), randomNumber()]
+    }
+
     async function getTopology() {
       try {
         // if no locale storage, setup
         // fetch topojson
         const usTopology = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
+        const non50StatesIds = ['11', '60', '66', '69', '72', '78']
         // filter out counties in territories and districts
         const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
           const state = geo.id.substring(0, 2)
@@ -47,9 +44,24 @@ function USMap() {
 
         // add random coordinates to object
         const countiesGeo = fiftyStatesCountiesGeo.map((county) => {
-          county.properties.initialTranspose = randomTranslation()
+          county.properties.transpose = randomTranslation()
+          // or map to local storage
           return county
         })
+
+        // create state obj for county coordinates
+        const countyCoordsObj = {}
+
+        countiesGeo.map(({ id, properties }) => {
+          const state = id.substring(0, 2)
+          if (state in countyCoordsObj) {
+            countyCoordsObj[state][id] = properties.transpose
+          } else {
+            countyCoordsObj[state] = { [id]: properties.transpose }
+          }
+        })
+
+        setCountyCoords(countyCoordsObj)
 
         // trim down topology obj before setting state
         const filterTopology = {
@@ -66,18 +78,6 @@ function USMap() {
         // prune nation geo off
         delete filterTopology.objects.nation
         setTopology(filterTopology)
-
-        // create obj for bool of pieces located
-        const countyLocationTracker = {}
-        filterTopology.objects.counties.geometries.map(({ id }) => {
-          const state = id.substring(0, 2)
-          if (state in countyLocationTracker) {
-            countyLocationTracker[state][id] = false
-          } else {
-            countyLocationTracker[state] = { [id]: false }
-          }
-        })
-        setPuzzleProgress(countyLocationTracker)
       } catch (error) {
         // todo
         console.error(error)
@@ -169,8 +169,8 @@ function USMap() {
         .append('path')
         .attr('class', 'state')
         .attr('d', pathGenerator)
-        .attr('fill', (d) => stateColorScale(d.id.slice(0, 2)))
-        .attr('id', (d) => `${d.id}`)
+        .attr('fill', ({ id }) => stateColorScale(id.slice(0, 2)))
+        .attr('id', ({ id }) => `${id}`)
 
       // Create a path element for each count
       const countyPaths = svg
@@ -180,13 +180,16 @@ function USMap() {
         .append('path')
         .attr('class', 'county')
         .attr('d', pathGenerator)
-        .attr('stroke', (d) => stateColorScale(d.id.slice(0, 2)))
+        .attr('stroke', ({ id }) => stateColorScale(id.slice(0, 2)))
         .attr('stroke-width', 0.25)
         .attr('fill', 'lightgray')
-        .attr('id', (d) => `county-id-${d.id}`)
-        .attr('data-state-id', (d) => `state-id-${d.id.slice(0, 2)}`)
-        .attr('data-name', (d) => `${d.properties.name}`)
-        .attr('transform', (d) => d.properties.initialTranspose) // d or local storage
+        .attr('id', ({ id }) => `county-id-${id}`)
+        .attr('data-state-id', ({ id }) => `state-id-${id.slice(0, 2)}`)
+        .attr('data-name', ({ properties }) => `${properties.name}`)
+        .attr(
+          'transform',
+          ({ properties }) => `translate(${properties.transpose[0]}, ${properties.transpose[1]})`
+        ) // d or local storage
         .on('mouseover', (e, d) => handleMouseOver(e, d))
         .on('mousemove', (e) => handleMouseMove(e))
         .on('mouseout', handleMouseOut)
