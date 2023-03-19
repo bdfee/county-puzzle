@@ -14,29 +14,16 @@ const randomTranslation = () => {
 function USMap() {
   const mapRef = useRef()
   const [topology, setTopology] = useState(null)
-  const [piecesLocated, setPiecesLocated] = useState({})
+  const [puzzleProgress, setPuzzleProgress] = useState({})
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
   const tooltipStyle = { left: tooltipCoords[0], top: tooltipCoords[1] }
-  // check if pieceLocated obj needs updating, and update
-  const updatePieceLocated = (id, bool) => {
+
+  // update puzzle progress obj when county is located
+  const updateProgress = (id) => {
     const state = id.substring(0, 2)
-    const county = piecesLocated[state][id]
-
-    if (!bool && county) {
-      piecesLocated[state][id] = false
-      return false
-    }
-
-    if (bool && !county) {
-      piecesLocated[state][id] = true
-      return true
-      // if (Object.values(piecesLocated[state]).every((value) => value === true)) {
-      //   // todo
-      //   console.log('delete county svgs')
-      // }
-    }
+    setPuzzleProgress({ ...puzzleProgress, [state]: { ...puzzleProgress[state], [id]: true } })
   }
 
   const non50StatesIds = ['11', '60', '66', '69', '72', '78']
@@ -44,6 +31,7 @@ function USMap() {
   useEffect(() => {
     async function getTopology() {
       try {
+        // if no locale storage, setup
         // fetch topojson
         const usTopology = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
         // filter out counties in territories and districts
@@ -51,9 +39,16 @@ function USMap() {
           const state = geo.id.substring(0, 2)
           return !non50StatesIds.includes(state) ? true : false
         })
+
         // filter out territories and districts
         const fiftyStatesGeo = usTopology.objects.states.geometries.filter(({ id }) => {
           return !non50StatesIds.includes(id) ? true : false
+        })
+
+        // add random coordinates to object
+        const countiesGeo = fiftyStatesCountiesGeo.map((county) => {
+          county.properties.initialTranspose = randomTranslation()
+          return county
         })
 
         // trim down topology obj before setting state
@@ -62,7 +57,7 @@ function USMap() {
           bbox: usTopology.bbox,
           objects: {
             ...usTopology.objects,
-            counties: { type: 'GeometryCollection', geometries: fiftyStatesCountiesGeo },
+            counties: { type: 'GeometryCollection', geometries: countiesGeo },
             states: { type: 'GeometryCollection', geometries: fiftyStatesGeo }
           },
           transform: usTopology.transform,
@@ -82,7 +77,7 @@ function USMap() {
             countyLocationTracker[state] = { [id]: false }
           }
         })
-        setPiecesLocated(countyLocationTracker)
+        setPuzzleProgress(countyLocationTracker)
       } catch (error) {
         // todo
         console.error(error)
@@ -122,8 +117,9 @@ function USMap() {
           .attr('stroke-width', 0.1)
           .attr('stroke', 'lightgray')
           .on('.drag', null)
+
+        updateProgress(d.subject.id)
       }
-      updatePieceLocated(d.subject.id, isLocated)
     })
 
   function handleMouseOver(e, d) {
@@ -143,8 +139,8 @@ function USMap() {
     // remove any svg el from previous render
     d3.select(mapRef.current).selectAll('*').remove()
 
-    const width = window.innerWidth
-    const height = window.innerHeight
+    const width = window.outerWidth
+    const height = window.outerHeight
 
     // geoAlbersUSA projection, center on window/svg
     const projection = d3
@@ -190,7 +186,7 @@ function USMap() {
         .attr('id', (d) => `county-id-${d.id}`)
         .attr('data-state-id', (d) => `state-id-${d.id.slice(0, 2)}`)
         .attr('data-name', (d) => `${d.properties.name}`)
-        .attr('transform', () => randomTranslation())
+        .attr('transform', (d) => d.properties.initialTranspose) // d or local storage
         .on('mouseover', (e, d) => handleMouseOver(e, d))
         .on('mousemove', (e) => handleMouseMove(e))
         .on('mouseout', handleMouseOut)
