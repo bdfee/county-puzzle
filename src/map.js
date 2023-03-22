@@ -6,20 +6,22 @@ import './App.css'
 function USMap() {
   const mapRef = useRef()
   const [topology, setTopology] = useState(null)
-  const [countyCoords, setCountyCoords] = useState({})
+  const [countyCoords, setCountyCoords] = useState(JSON.parse(localStorage.getItem('puzzleCoords')))
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
   const tooltipStyle = { left: tooltipCoords[0], top: tooltipCoords[1] }
-  // update puzzle progress obj when county is located
+  // update puzzle progress obj
+
   const updateProgress = (id, coordsArr) => {
     const state = id.substring(0, 2)
-    const updateCoordsObj = {
-      ...countyCoords,
-      [state]: { ...countyCoords[state], [id]: coordsArr }
-    }
-    localStorage.setItem('puzzleCoords', JSON.stringify(updateCoordsObj))
-    setCountyCoords(updateCoordsObj)
+    const update = countyCoords
+    update[state][id] = coordsArr
+    setCountyCoords(update)
   }
+
+  addEventListener('beforeunload', () => {
+    localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
+  })
 
   useEffect(() => {
     // scatter puzzle pieces
@@ -46,7 +48,7 @@ function USMap() {
           return !non50StatesIds.includes(id) ? true : false
         })
 
-        let countiesGeo
+        let countiesGeo = []
 
         // add  coordinates to object
         if (localStorage.getItem('puzzleCoords') === null) {
@@ -54,27 +56,25 @@ function USMap() {
             county.properties.transpose = randomTranslation()
             return county
           })
+          const countyCoordsObj = {}
+
+          countiesGeo.map(({ id, properties }) => {
+            const state = id.substring(0, 2)
+            if (state in countyCoordsObj) {
+              countyCoordsObj[state][id] = properties.transpose
+            } else {
+              countyCoordsObj[state] = { [id]: properties.transpose }
+            }
+          })
+          setCountyCoords(countyCoordsObj)
         } else {
-          const localStoreObj = JSON.parse(localStorage.getItem('puzzleCoords'))
           countiesGeo = fiftyStatesCountiesGeo.map((county) => {
-            county.properties.transpose = localStoreObj[county.id.substring(0, 2)][county.id]
+            county.properties.transpose = countyCoords[county.id.substring(0, 2)][county.id]
             return county
           })
         }
 
         // create state obj for county coordinates
-        const countyCoordsObj = {}
-
-        countiesGeo.map(({ id, properties }) => {
-          const state = id.substring(0, 2)
-          if (state in countyCoordsObj) {
-            countyCoordsObj[state][id] = properties.transpose
-          } else {
-            countyCoordsObj[state] = { [id]: properties.transpose }
-          }
-        })
-
-        setCountyCoords(countyCoordsObj)
 
         // trim down topology obj before setting state
         const filterTopology = {
@@ -130,6 +130,7 @@ function USMap() {
 
       const [x, y] = [+coords[0], +coords[1]]
       // const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
+      updateProgress(d.subject.id, [x, y])
       if (x === 0 && y === 0) {
         // remove drag handler and adjust stroke style when correctly located
         d3.select(this)
@@ -138,7 +139,6 @@ function USMap() {
           .attr('stroke', 'lightgray')
           .on('.drag', null)
       }
-      updateProgress(d.subject.id, [x, y])
     })
 
   function handleMouseOver(e, d) {
@@ -217,10 +217,6 @@ function USMap() {
       countyPaths.call(dragHandler)
     }
   }, [topology])
-
-  // useEffect(() => {
-  //   localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
-  // }, [])
 
   return (
     <div>
