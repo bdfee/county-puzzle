@@ -10,11 +10,15 @@ function USMap() {
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
   const tooltipStyle = { left: tooltipCoords[0], top: tooltipCoords[1] }
-
   // update puzzle progress obj when county is located
-  const updateProgress = (id) => {
+  const updateProgress = (id, coordsArr) => {
     const state = id.substring(0, 2)
-    setCountyCoords({ ...countyCoords, [state]: { ...countyCoords[state], [id]: true } })
+    const updateCoordsObj = {
+      ...countyCoords,
+      [state]: { ...countyCoords[state], [id]: coordsArr }
+    }
+    localStorage.setItem('puzzleCoords', JSON.stringify(updateCoordsObj))
+    setCountyCoords(updateCoordsObj)
   }
 
   useEffect(() => {
@@ -27,10 +31,10 @@ function USMap() {
 
     async function getTopology() {
       try {
-        // if no locale storage, setup
         // fetch topojson
         const usTopology = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
         const non50StatesIds = ['11', '60', '66', '69', '72', '78']
+
         // filter out counties in territories and districts
         const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
           const state = geo.id.substring(0, 2)
@@ -42,12 +46,21 @@ function USMap() {
           return !non50StatesIds.includes(id) ? true : false
         })
 
-        // add random coordinates to object
-        const countiesGeo = fiftyStatesCountiesGeo.map((county) => {
-          county.properties.transpose = randomTranslation()
-          // or map to local storage
-          return county
-        })
+        let countiesGeo
+
+        // add  coordinates to object
+        if (localStorage.getItem('puzzleCoords') === null) {
+          countiesGeo = fiftyStatesCountiesGeo.map((county) => {
+            county.properties.transpose = randomTranslation()
+            return county
+          })
+        } else {
+          const localStoreObj = JSON.parse(localStorage.getItem('puzzleCoords'))
+          countiesGeo = fiftyStatesCountiesGeo.map((county) => {
+            county.properties.transpose = localStoreObj[county.id.substring(0, 2)][county.id]
+            return county
+          })
+        }
 
         // create state obj for county coordinates
         const countyCoordsObj = {}
@@ -109,17 +122,23 @@ function USMap() {
       // add tool tips
       d3.selectAll('.county').attr('pointer-events', 'all')
       // if county translate is 0 0, it is located correctly
-      const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
-      if (isLocated) {
+
+      const coords = d3
+        .select(this)
+        .attr('transform')
+        .match(/-?\d+(\.\d+)?/g)
+
+      const [x, y] = [+coords[0], +coords[1]]
+      // const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
+      if (x === 0 && y === 0) {
         // remove drag handler and adjust stroke style when correctly located
         d3.select(this)
           .classed('located', true)
           .attr('stroke-width', 0.1)
           .attr('stroke', 'lightgray')
           .on('.drag', null)
-
-        updateProgress(d.subject.id)
       }
+      updateProgress(d.subject.id, [x, y])
     })
 
   function handleMouseOver(e, d) {
@@ -173,6 +192,7 @@ function USMap() {
         .attr('id', ({ id }) => `${id}`)
 
       // Create a path element for each count
+
       const countyPaths = svg
         .selectAll('.county')
         .data(topojson.feature(topology, topology.objects.counties).features)
@@ -189,7 +209,7 @@ function USMap() {
         .attr(
           'transform',
           ({ properties }) => `translate(${properties.transpose[0]}, ${properties.transpose[1]})`
-        ) // d or local storage
+        )
         .on('mouseover', (e, d) => handleMouseOver(e, d))
         .on('mousemove', (e) => handleMouseMove(e))
         .on('mouseout', handleMouseOut)
@@ -197,6 +217,10 @@ function USMap() {
       countyPaths.call(dragHandler)
     }
   }, [topology])
+
+  // useEffect(() => {
+  //   localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
+  // }, [])
 
   return (
     <div>
