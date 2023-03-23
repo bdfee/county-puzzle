@@ -35,7 +35,6 @@ function USMap() {
     }
   }, [moveCount])
 
-  // periodic local storage sync
   useEffect(() => {
     async function getTopology() {
       try {
