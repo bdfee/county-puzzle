@@ -19,11 +19,11 @@ function USMap() {
     setCountyCoords(update)
     setCount((count) => count + 1)
   }
-
+  // if not a hard reset do this
   // local storage
-  addEventListener('beforeunload', () => {
-    localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
-  })
+  // addEventListener('beforeunload', () => {
+  //   localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
+  // })
 
   useEffect(() => {
     if (count >= 10) {
@@ -62,7 +62,7 @@ function USMap() {
         let countiesGeo = []
 
         // add local storage coords if present, otherwise scatter pieces
-        if (localStorage.getItem('puzzleCoords') === null) {
+        if (countyCoords === null) {
           countiesGeo = fiftyStatesCountiesGeo.map((county) => {
             county.properties.transpose = randomTranslation()
             return county
