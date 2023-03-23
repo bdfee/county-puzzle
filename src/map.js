@@ -3,41 +3,48 @@ import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import './App.css'
 
-// scatter puzzle pieces
-const randomTranslation = () => {
-  const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-  const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
-  const translation = `translate(${randomNumber()},${randomNumber()})`
-  return translation
-}
+const stateId = (id) => id.substring(0, 2)
 
 function USMap() {
   const mapRef = useRef()
   const [topology, setTopology] = useState(null)
-  const [puzzleProgress, setPuzzleProgress] = useState({})
+  const [countyCoords, setCountyCoords] = useState(JSON.parse(localStorage.getItem('puzzleCoords')))
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
-
+  const [moveCount, setMoveCount] = useState(0)
   const tooltipStyle = { left: tooltipCoords[0], top: tooltipCoords[1] }
 
-  // update puzzle progress obj when county is located
-  const updateProgress = (id) => {
-    const state = id.substring(0, 2)
-    setPuzzleProgress({ ...puzzleProgress, [state]: { ...puzzleProgress[state], [id]: true } })
+  const updateProgress = (id, coordsArr) => {
+    const update = countyCoords
+    update[stateId(id)][id] = coordsArr
+    setCountyCoords(update)
+    setMoveCount((moveCount) => moveCount + 1)
   }
+  // local storage on unload
+  addEventListener('beforeunload', () => {
+    if (moveCount) {
+      localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
+    }
+  })
 
-  const non50StatesIds = ['11', '60', '66', '69', '72', '78']
+  // every ten moves set local storage
+  useEffect(() => {
+    if (moveCount >= 10) {
+      localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
+      setMoveCount(0)
+    }
+  }, [moveCount])
 
   useEffect(() => {
     async function getTopology() {
       try {
-        // if no locale storage, setup
         // fetch topojson
         const usTopology = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
+        const non50StatesIds = ['11', '60', '66', '69', '72', '78']
+
         // filter out counties in territories and districts
         const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
-          const state = geo.id.substring(0, 2)
-          return !non50StatesIds.includes(state) ? true : false
+          return !non50StatesIds.includes(stateId(geo.id)) ? true : false
         })
 
         // filter out territories and districts
@@ -45,11 +52,38 @@ function USMap() {
           return !non50StatesIds.includes(id) ? true : false
         })
 
-        // add random coordinates to object
-        const countiesGeo = fiftyStatesCountiesGeo.map((county) => {
-          county.properties.initialTranspose = randomTranslation()
-          return county
-        })
+        // scatter puzzle pieces
+        const randomTranslation = () => {
+          const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
+          const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
+          return [randomNumber(), randomNumber()]
+        }
+
+        let countiesGeo = []
+
+        // add local storage coords if present, otherwise scatter pieces
+        if (countyCoords === null) {
+          countiesGeo = fiftyStatesCountiesGeo.map((county) => {
+            county.properties.transpose = randomTranslation()
+            return county
+          })
+
+          const countyCoordsObj = {}
+
+          countiesGeo.map(({ id, properties }) => {
+            if (stateId(id) in countyCoordsObj) {
+              countyCoordsObj[stateId(id)][id] = properties.transpose
+            } else {
+              countyCoordsObj[stateId(id)] = { [id]: properties.transpose }
+            }
+          })
+          setCountyCoords(countyCoordsObj)
+        } else {
+          countiesGeo = fiftyStatesCountiesGeo.map((county) => {
+            county.properties.transpose = countyCoords[county.id.substring(0, 2)][county.id]
+            return county
+          })
+        }
 
         // trim down topology obj before setting state
         const filterTopology = {
@@ -66,18 +100,6 @@ function USMap() {
         // prune nation geo off
         delete filterTopology.objects.nation
         setTopology(filterTopology)
-
-        // create obj for bool of pieces located
-        const countyLocationTracker = {}
-        filterTopology.objects.counties.geometries.map(({ id }) => {
-          const state = id.substring(0, 2)
-          if (state in countyLocationTracker) {
-            countyLocationTracker[state][id] = false
-          } else {
-            countyLocationTracker[state] = { [id]: false }
-          }
-        })
-        setPuzzleProgress(countyLocationTracker)
       } catch (error) {
         // todo
         console.error(error)
@@ -109,16 +131,22 @@ function USMap() {
       // add tool tips
       d3.selectAll('.county').attr('pointer-events', 'all')
       // if county translate is 0 0, it is located correctly
-      const isLocated = d3.select(this).attr('transform') === 'translate(0,0)'
-      if (isLocated) {
+
+      const coords = d3
+        .select(this)
+        .attr('transform')
+        .match(/-?\d+(\.\d+)?/g)
+
+      const [x, y] = [+coords[0], +coords[1]]
+      updateProgress(d.subject.id, [x, y])
+
+      if (x === 0 && y === 0) {
         // remove drag handler and adjust stroke style when correctly located
         d3.select(this)
           .classed('located', true)
           .attr('stroke-width', 0.1)
           .attr('stroke', 'lightgray')
           .on('.drag', null)
-
-        updateProgress(d.subject.id)
       }
     })
 
@@ -169,10 +197,11 @@ function USMap() {
         .append('path')
         .attr('class', 'state')
         .attr('d', pathGenerator)
-        .attr('fill', (d) => stateColorScale(d.id.slice(0, 2)))
-        .attr('id', (d) => `${d.id}`)
+        .attr('fill', ({ id }) => stateColorScale(stateId(id)))
+        .attr('id', ({ id }) => `${id}`)
 
       // Create a path element for each count
+
       const countyPaths = svg
         .selectAll('.county')
         .data(topojson.feature(topology, topology.objects.counties).features)
@@ -180,13 +209,16 @@ function USMap() {
         .append('path')
         .attr('class', 'county')
         .attr('d', pathGenerator)
-        .attr('stroke', (d) => stateColorScale(d.id.slice(0, 2)))
+        .attr('stroke', ({ id }) => stateColorScale(stateId(id)))
         .attr('stroke-width', 0.25)
         .attr('fill', 'lightgray')
-        .attr('id', (d) => `county-id-${d.id}`)
-        .attr('data-state-id', (d) => `state-id-${d.id.slice(0, 2)}`)
-        .attr('data-name', (d) => `${d.properties.name}`)
-        .attr('transform', (d) => d.properties.initialTranspose) // d or local storage
+        .attr('id', ({ id }) => `county-id-${id}`)
+        .attr('data-state-id', ({ id }) => `state-id-${stateId(id)}`)
+        .attr('data-name', ({ properties }) => `${properties.name}`)
+        .attr(
+          'transform',
+          ({ properties }) => `translate(${properties.transpose[0]}, ${properties.transpose[1]})`
+        )
         .on('mouseover', (e, d) => handleMouseOver(e, d))
         .on('mousemove', (e) => handleMouseMove(e))
         .on('mouseout', handleMouseOut)
