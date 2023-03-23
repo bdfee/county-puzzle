@@ -3,35 +3,37 @@ import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import './App.css'
 
+const stateId = (id) => id.substring(0, 2)
+
 function USMap() {
   const mapRef = useRef()
   const [topology, setTopology] = useState(null)
   const [countyCoords, setCountyCoords] = useState(JSON.parse(localStorage.getItem('puzzleCoords')))
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
-  const [count, setCount] = useState(0)
+  const [moveCount, setMoveCount] = useState(0)
   const tooltipStyle = { left: tooltipCoords[0], top: tooltipCoords[1] }
 
   const updateProgress = (id, coordsArr) => {
-    const state = id.substring(0, 2)
     const update = countyCoords
-    update[state][id] = coordsArr
+    update[stateId(id)][id] = coordsArr
     setCountyCoords(update)
-    setCount((count) => count + 1)
+    setMoveCount((moveCount) => moveCount + 1)
   }
-  // if not a hard reset do this
-  // local storage
-  // addEventListener('beforeunload', () => {
-  //   localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
-  // })
-
-  useEffect(() => {
-    if (count >= 10) {
+  // local storage on unload
+  addEventListener('beforeunload', () => {
+    if (moveCount) {
       localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
-      console.log('periodic save')
-      setCount(0)
     }
-  }, [count])
+  })
+
+  // every ten moves set local storage
+  useEffect(() => {
+    if (moveCount >= 10) {
+      localStorage.setItem('puzzleCoords', JSON.stringify(countyCoords))
+      setMoveCount(0)
+    }
+  }, [moveCount])
 
   // periodic local storage sync
   useEffect(() => {
@@ -43,8 +45,7 @@ function USMap() {
 
         // filter out counties in territories and districts
         const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
-          const stateId = geo.id.substring(0, 2)
-          return !non50StatesIds.includes(stateId) ? true : false
+          return !non50StatesIds.includes(stateId(geo.id)) ? true : false
         })
 
         // filter out territories and districts
@@ -71,11 +72,10 @@ function USMap() {
           const countyCoordsObj = {}
 
           countiesGeo.map(({ id, properties }) => {
-            const stateId = id.substring(0, 2)
-            if (stateId in countyCoordsObj) {
-              countyCoordsObj[stateId][id] = properties.transpose
+            if (stateId(id) in countyCoordsObj) {
+              countyCoordsObj[stateId(id)][id] = properties.transpose
             } else {
-              countyCoordsObj[stateId] = { [id]: properties.transpose }
+              countyCoordsObj[stateId(id)] = { [id]: properties.transpose }
             }
           })
           setCountyCoords(countyCoordsObj)
@@ -198,7 +198,7 @@ function USMap() {
         .append('path')
         .attr('class', 'state')
         .attr('d', pathGenerator)
-        .attr('fill', ({ id }) => stateColorScale(id.slice(0, 2)))
+        .attr('fill', ({ id }) => stateColorScale(stateId(id)))
         .attr('id', ({ id }) => `${id}`)
 
       // Create a path element for each count
@@ -210,11 +210,11 @@ function USMap() {
         .append('path')
         .attr('class', 'county')
         .attr('d', pathGenerator)
-        .attr('stroke', ({ id }) => stateColorScale(id.slice(0, 2)))
+        .attr('stroke', ({ id }) => stateColorScale(stateId(id)))
         .attr('stroke-width', 0.25)
         .attr('fill', 'lightgray')
         .attr('id', ({ id }) => `county-id-${id}`)
-        .attr('data-state-id', ({ id }) => `state-id-${id.slice(0, 2)}`)
+        .attr('data-state-id', ({ id }) => `state-id-${stateId(id)}`)
         .attr('data-name', ({ properties }) => `${properties.name}`)
         .attr(
           'transform',
