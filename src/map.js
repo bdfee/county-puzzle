@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
+import StateFilter from './state-filter'
+
 import './App.css'
 
 const stateId = (id) => id.substring(0, 2)
@@ -9,8 +11,7 @@ function USMap() {
   const mapRef = useRef()
   const [baseTopology, setBaseTopology] = useState(null)
   const [topology, setTopology] = useState(null)
-  // eslint-disable-next-line no-unused-vars
-  const [filteredStates, setFilteredStates] = useState([])
+  const [filteredStates, setFilteredStates] = useState('')
   const [countyCoords, setCountyCoords] = useState(JSON.parse(localStorage.getItem('puzzleCoords')))
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
@@ -242,10 +243,7 @@ function USMap() {
 
   return (
     <div>
-      <input
-        type="text"
-        value={filteredStates[0]}
-        onChange={({ target }) => setFilteredStates([target.value])}></input>
+      <StateFilter setFilter={setFilteredStates} />
       <div className="tooltip" style={tooltipStyle}>
         {tooltipText.length ? tooltipText : ''}
       </div>
