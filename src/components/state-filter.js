@@ -1,4 +1,4 @@
-import { stateNames } from '../states'
+import { stateDictionary } from '../states'
 
 const StateFilter = (props) => {
   return (
@@ -10,10 +10,10 @@ const StateFilter = (props) => {
         id="state-filter"
         onChange={({ target }) => props.setFilter(target.value)}>
         <option value="">All States</option>
-        {Object.entries(stateNames).map(([stateId, stateName]) => {
+        {Object.entries(stateDictionary).map(([stateId, { name }]) => {
           return (
             <option key={stateId} value={stateId}>
-              {stateName}
+              {name}
             </option>
           )
         })}

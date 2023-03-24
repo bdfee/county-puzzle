@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import StateFilter from './components/state-filter'
-import { non50StatesIds } from './states'
+import { non50StatesIds, stateDictionary } from './states'
 
 import './App.css'
 
@@ -164,7 +164,6 @@ function USMap() {
     })
 
   function handleMouseOver(e, d) {
-    console.log(e)
     setTooltipCoords([e.offsetX + 20, e.offsetY + 20])
     setTooltipText(d.properties.name)
   }
@@ -201,7 +200,7 @@ function USMap() {
       .attr('viewBox', `0 0 ${width} ${height}`)
 
     // todo improve color randomization
-    const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
+    // const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
     if (topology) {
       svg
@@ -211,7 +210,7 @@ function USMap() {
         .append('path')
         .attr('class', 'state')
         .attr('d', pathGenerator)
-        .attr('fill', ({ id }) => stateColorScale(stateId(id)))
+        .attr('fill', ({ id }) => stateDictionary[id].color)
         .attr('id', ({ id }) => `${id}`)
 
       // Create a path element for each count
@@ -223,7 +222,7 @@ function USMap() {
         .append('path')
         .attr('class', 'county')
         .attr('d', pathGenerator)
-        .attr('stroke', ({ id }) => stateColorScale(stateId(id)))
+        .attr('stroke', ({ id }) => stateDictionary[stateId(id)].color)
         .attr('stroke-width', 0.25)
         .attr('fill', 'lightgray')
         .attr('id', ({ id }) => `county-id-${id}`)
