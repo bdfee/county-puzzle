@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import StateFilter from './components/state-filter'
-import { non50StatesIds, stateDictionary } from './states'
+import { non50StatesIds, stateDictionary } from './dictionaries/state'
 
 import './App.css'
 
