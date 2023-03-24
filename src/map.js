@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import StateFilter from './components/state-filter'
+import ToolTip from './components/tool-tip'
 import { non50StatesIds, stateDictionary } from './dictionaries/state'
 
 import './App.css'
@@ -17,7 +18,6 @@ function USMap() {
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
   const [moveCount, setMoveCount] = useState(0)
-  const tooltipStyle = { left: tooltipCoords[0], top: tooltipCoords[1] }
 
   const updateProgress = (id, coordsArr) => {
     const update = countyCoords
@@ -164,12 +164,12 @@ function USMap() {
     })
 
   function handleMouseOver(e, d) {
-    setTooltipCoords([e.offsetX + 20, e.offsetY + 20])
+    setTooltipCoords([e.offsetX, e.offsetY])
     setTooltipText(d.properties.name)
   }
 
   function handleMouseMove(e) {
-    setTooltipCoords([e.offsetX + 20, e.offsetY + 20])
+    setTooltipCoords([e.offsetX, e.offsetY])
   }
 
   function handleMouseOut() {
@@ -198,9 +198,6 @@ function USMap() {
       .attr('width', width)
       .attr('height', height)
       .attr('viewBox', `0 0 ${width} ${height}`)
-
-    // todo improve color randomization
-    // const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
     if (topology) {
       svg
@@ -243,9 +240,7 @@ function USMap() {
   return (
     <div>
       <StateFilter setFilter={setFilteredStates} />
-      <div className="tooltip" style={tooltipStyle}>
-        {tooltipText.length ? tooltipText : ''}
-      </div>
+      {tooltipText.length ? <ToolTip text={tooltipText} coords={tooltipCoords} /> : ''}
       <div ref={mapRef}></div>
     </div>
   )
