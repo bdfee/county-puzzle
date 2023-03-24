@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
+import StateFilter from './components/state-filter'
+import { non50StatesIds, stateDictionary } from './dictionaries/state'
+
 import './App.css'
 
 const stateId = (id) => id.substring(0, 2)
 
 function USMap() {
   const mapRef = useRef()
+  const [baseTopology, setBaseTopology] = useState(null)
   const [topology, setTopology] = useState(null)
+  const [filteredStates, setFilteredStates] = useState('')
   const [countyCoords, setCountyCoords] = useState(JSON.parse(localStorage.getItem('puzzleCoords')))
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
@@ -35,78 +40,86 @@ function USMap() {
     }
   }, [moveCount])
 
+  // get base topology
   useEffect(() => {
-    async function getTopology() {
+    async function getBaseTopology() {
       try {
         // fetch topojson
-        const usTopology = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
-        const non50StatesIds = ['11', '60', '66', '69', '72', '78']
-
-        // filter out counties in territories and districts
-        const fiftyStatesCountiesGeo = usTopology.objects.counties.geometries.filter((geo) => {
-          return !non50StatesIds.includes(stateId(geo.id)) ? true : false
-        })
-
-        // filter out territories and districts
-        const fiftyStatesGeo = usTopology.objects.states.geometries.filter(({ id }) => {
-          return !non50StatesIds.includes(id) ? true : false
-        })
-
-        // scatter puzzle pieces
-        const randomTranslation = () => {
-          const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-          const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
-          return [randomNumber(), randomNumber()]
-        }
-
-        let countiesGeo = []
-
-        // add local storage coords if present, otherwise scatter pieces
-        if (countyCoords === null) {
-          countiesGeo = fiftyStatesCountiesGeo.map((county) => {
-            county.properties.transpose = randomTranslation()
-            return county
-          })
-
-          const countyCoordsObj = {}
-
-          countiesGeo.map(({ id, properties }) => {
-            if (stateId(id) in countyCoordsObj) {
-              countyCoordsObj[stateId(id)][id] = properties.transpose
-            } else {
-              countyCoordsObj[stateId(id)] = { [id]: properties.transpose }
-            }
-          })
-          setCountyCoords(countyCoordsObj)
-        } else {
-          countiesGeo = fiftyStatesCountiesGeo.map((county) => {
-            county.properties.transpose = countyCoords[county.id.substring(0, 2)][county.id]
-            return county
-          })
-        }
-
-        // trim down topology obj before setting state
-        const filterTopology = {
-          arcs: usTopology.arcs,
-          bbox: usTopology.bbox,
-          objects: {
-            ...usTopology.objects,
-            counties: { type: 'GeometryCollection', geometries: countiesGeo },
-            states: { type: 'GeometryCollection', geometries: fiftyStatesGeo }
-          },
-          transform: usTopology.transform,
-          type: usTopology.type
-        }
-        // prune nation geo off
-        delete filterTopology.objects.nation
-        setTopology(filterTopology)
+        setBaseTopology(await d3.json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json'))
       } catch (error) {
-        // todo
-        console.error(error)
+        console.log(error)
       }
     }
-    getTopology()
+    getBaseTopology()
+    console.log('fetched')
   }, [])
+
+  useEffect(() => {
+    if (baseTopology !== null) {
+      // filter out counties in territories and districts
+      const fiftyStatesCountiesGeo = baseTopology.objects.counties.geometries.filter(({ id }) => {
+        if (filteredStates.length) {
+          return filteredStates.includes(stateId(id)) ? true : false
+        } else return !non50StatesIds.includes(stateId(id)) ? true : false
+      })
+
+      // filter out territories and districts
+      const fiftyStatesGeo = baseTopology.objects.states.geometries.filter(({ id }) => {
+        if (filteredStates.length) {
+          return filteredStates.includes(stateId(id)) ? true : false
+        } else return !non50StatesIds.includes(stateId(id)) ? true : false
+      })
+
+      // scatter puzzle pieces
+      const randomTranslation = () => {
+        const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
+        const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
+        return [randomNumber(), randomNumber()]
+      }
+
+      let countiesGeo = []
+
+      // add local storage coords if present, otherwise scatter pieces
+      if (countyCoords === null) {
+        countiesGeo = fiftyStatesCountiesGeo.map((county) => {
+          county.properties.transpose = randomTranslation()
+          return county
+        })
+
+        const countyCoordsObj = {}
+
+        countiesGeo.map(({ id, properties }) => {
+          if (stateId(id) in countyCoordsObj) {
+            countyCoordsObj[stateId(id)][id] = properties.transpose
+          } else {
+            countyCoordsObj[stateId(id)] = { [id]: properties.transpose }
+          }
+        })
+        setCountyCoords(countyCoordsObj)
+      } else {
+        countiesGeo = fiftyStatesCountiesGeo.map((county) => {
+          county.properties.transpose = countyCoords[county.id.substring(0, 2)][county.id]
+          return county
+        })
+      }
+
+      // trim down topology obj before setting state
+      const filterTopology = {
+        arcs: baseTopology.arcs,
+        bbox: baseTopology.bbox,
+        objects: {
+          ...baseTopology.objects,
+          counties: { type: 'GeometryCollection', geometries: countiesGeo },
+          states: { type: 'GeometryCollection', geometries: fiftyStatesGeo }
+        },
+        transform: baseTopology.transform,
+        type: baseTopology.type
+      }
+      // prune nation geo off
+      delete filterTopology.objects.nation
+      setTopology(filterTopology)
+    }
+  }, [baseTopology, filteredStates])
 
   // handlers
   const dragHandler = d3
@@ -151,12 +164,12 @@ function USMap() {
     })
 
   function handleMouseOver(e, d) {
-    setTooltipCoords([e.clientX, e.clientY])
+    setTooltipCoords([e.offsetX + 20, e.offsetY + 20])
     setTooltipText(d.properties.name)
   }
 
   function handleMouseMove(e) {
-    setTooltipCoords([e.clientX, e.clientY])
+    setTooltipCoords([e.offsetX + 20, e.offsetY + 20])
   }
 
   function handleMouseOut() {
@@ -187,7 +200,7 @@ function USMap() {
       .attr('viewBox', `0 0 ${width} ${height}`)
 
     // todo improve color randomization
-    const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
+    // const stateColorScale = d3.scaleOrdinal().range(d3.schemeCategory10)
 
     if (topology) {
       svg
@@ -197,7 +210,7 @@ function USMap() {
         .append('path')
         .attr('class', 'state')
         .attr('d', pathGenerator)
-        .attr('fill', ({ id }) => stateColorScale(stateId(id)))
+        .attr('fill', ({ id }) => stateDictionary[id].color)
         .attr('id', ({ id }) => `${id}`)
 
       // Create a path element for each count
@@ -209,7 +222,7 @@ function USMap() {
         .append('path')
         .attr('class', 'county')
         .attr('d', pathGenerator)
-        .attr('stroke', ({ id }) => stateColorScale(stateId(id)))
+        .attr('stroke', ({ id }) => stateDictionary[stateId(id)].color)
         .attr('stroke-width', 0.25)
         .attr('fill', 'lightgray')
         .attr('id', ({ id }) => `county-id-${id}`)
@@ -229,6 +242,7 @@ function USMap() {
 
   return (
     <div>
+      <StateFilter setFilter={setFilteredStates} />
       <div className="tooltip" style={tooltipStyle}>
         {tooltipText.length ? tooltipText : ''}
       </div>
