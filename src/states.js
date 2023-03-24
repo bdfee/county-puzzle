@@ -51,3 +51,6 @@ export const stateNames = {
   '55': 'Wisconsin',
   '56': 'Wyoming'
 }
+
+export const non50StatesIds = ['11', '60', '66', '69', '72', '78']
+

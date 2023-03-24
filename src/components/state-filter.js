@@ -1,4 +1,4 @@
-import { stateNames } from './states'
+import { stateNames } from '../states'
 
 const StateFilter = (props) => {
   return (

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
-import StateFilter from './state-filter'
+import StateFilter from './components/state-filter'
+import { non50StatesIds } from './states'
 
 import './App.css'
 
@@ -55,8 +56,6 @@ function USMap() {
 
   useEffect(() => {
     if (baseTopology !== null) {
-      const non50StatesIds = ['11', '60', '66', '69', '72', '78']
-
       // filter out counties in territories and districts
       const fiftyStatesCountiesGeo = baseTopology.objects.counties.geometries.filter(({ id }) => {
         if (filteredStates.length) {
@@ -165,12 +164,13 @@ function USMap() {
     })
 
   function handleMouseOver(e, d) {
-    setTooltipCoords([e.clientX, e.clientY])
+    console.log(e)
+    setTooltipCoords([e.offsetX + 20, e.offsetY + 20])
     setTooltipText(d.properties.name)
   }
 
   function handleMouseMove(e) {
-    setTooltipCoords([e.clientX, e.clientY])
+    setTooltipCoords([e.offsetX + 20, e.offsetY + 20])
   }
 
   function handleMouseOut() {
