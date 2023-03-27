@@ -143,7 +143,15 @@ const Puzzle = ({
       .on('mousemove', (e) => handleMouseMove(e))
       .on('mouseout', handleMouseOut)
 
-    countyPaths.call(dragHandler)
+    countyPaths.call(dragHandler).each(function () {
+      if (d3.select(this).attr('transform') === 'translate(0, 0)') {
+        d3.select(this)
+          .classed('located', true)
+          .attr('stroke-width', 0.1)
+          .attr('stroke', 'lightgray')
+          .on('.drag', null)
+      }
+    })
   }, [countyGeometry, filteredStates])
 
   return (
