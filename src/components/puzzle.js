@@ -26,18 +26,10 @@ const Puzzle = ({
     if (withReturn) return [+x, +y]
   }
 
-  // style, remove drag, and lower the county when located
-  // then lower the state to be beneath the counties
   const located = (target) => {
     target.attr('stroke-width', 0.1).attr('stroke', 'lightgray').on('.drag', null).lower()
     d3.select(`#state-${target.attr('state-id')}`).lower()
   }
-
-  // const filterHidden = () => {
-  //   d3.selectAll('.county').filter(function() {
-  //     return d3.select(`#state-${target.attr('state-id')}`)
-  //   })
-  // }
 
   const dragHandler = d3
     .drag()
@@ -68,36 +60,24 @@ const Puzzle = ({
     setTooltipText('')
   }
 
-  const width = window.outerWidth
-  const height = window.outerHeight
-
-  const counties = { type: 'GeometryCollection', geometries: countyGeometry }
-  const states = { type: 'GeometryCollection', geometries: stateGeometry }
-
-  // if (filteredStates.length) {
-  //   counties.geometries = countyGeometry.filter(({ id }) =>
-  //     filteredStates.includes(stateId(id)) ? true : false
-  //   )
-  //   states.geometries = stateGeometry.filter(({ id }) =>
-  //     filteredStates.includes(stateId(id)) ? true : false
-  //   )
-  // } else {
-  //   counties.geometries = countyGeometry
-  //   states.geometries = stateGeometry
-  // }
-
-  // geoAlbersUSA projection, center on window/svg
-  const projection = d3
-    .geoAlbersUsa()
-    .translate([width / 2, height / 2])
-    .scale(1200)
-
-  // Create a path generator that converts GeoJSON geometries to SVG path elements
-  const pathGenerator = d3.geoPath().projection(projection)
-
   useEffect(() => {
     // remove any svg el from previous render
     d3.select(mapRef.current).selectAll('*').remove()
+
+    const width = window.outerWidth
+    const height = window.outerHeight
+
+    const counties = { type: 'GeometryCollection', geometries: countyGeometry }
+    const states = { type: 'GeometryCollection', geometries: stateGeometry }
+
+    // geoAlbersUSA projection, center on window/svg
+    const projection = d3
+      .geoAlbersUsa()
+      .translate([width / 2, height / 2])
+      .scale(1200)
+
+    // Create a path generator that converts GeoJSON geometries to SVG path elements
+    const pathGenerator = d3.geoPath().projection(projection)
 
     const svg = d3
       .select(mapRef.current)
@@ -132,7 +112,11 @@ const Puzzle = ({
       .attr('data-name', ({ properties }) => `${properties.name}`)
       .attr(
         'transform',
-        ({ properties }) => `translate(${properties.transpose[0]}, ${properties.transpose[1]})`
+        ({
+          properties: {
+            transpose: [x, y]
+          }
+        }) => `translate(${x}, ${y})`
       )
       .on('mouseover', (e, d) => handleMouseOver(e, d))
       .on('mousemove', (e) => handleMouseMove(e))
@@ -146,9 +130,8 @@ const Puzzle = ({
   useEffect(() => {
     if (filteredStates.length) {
       d3.selectAll('.county, .state')
+        .filter(({ id }) => (filteredStates.includes(stateId(id)) ? false : true))
         .style('visibility', 'hidden')
-        .filter(({ id }) => (filteredStates.includes(stateId(id)) ? true : false))
-        .style('visibility', 'visible')
     } else {
       d3.selectAll('.county, .state').style('visibility', 'visible')
     }
