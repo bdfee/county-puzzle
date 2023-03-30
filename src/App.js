@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
 import { stateId, randomTranslation } from './utilities'
-import { clear, setItem, getItem, doesItemExist } from './services/localStorage'
+import { clear, setItem, getItem } from './services/localStorage'
 
 function App() {
   const [baseTopology, setBaseTopology] = useState(null) // all static topo
@@ -43,7 +43,7 @@ function App() {
   const setCountyGeometryCoordinates = () => {
     let countyGeometry
     // check for existing coordinates in local storage
-    if (doesItemExist()) {
+    if (getItem()) {
       const localStorageCoords = getItem()
       setCurrentTranslations(localStorageCoords)
       // apply local translation to counties
@@ -106,7 +106,7 @@ function App() {
 
   return (
     <div className="App">
-      {countyGeometry && (
+      {countyGeometry ? (
         <Puzzle
           updateCurrentTranslations={updateCurrentTranslations}
           baseTopology={baseTopology}
@@ -114,6 +114,8 @@ function App() {
           countyGeometry={countyGeometry}
           reset={handleReset}
         />
+      ) : (
+        ''
       )}
     </div>
   )

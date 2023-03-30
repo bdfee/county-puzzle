@@ -105,7 +105,7 @@ const Pieces = ({
       .on('mouseover', (e, d) => handleMouseOver(e, d))
       .on('mousemove', (e) => handleMouseMove(e))
       .on('mouseout', handleMouseOut)
-      .on('end', console.log('end'))
+      .on('end', () => console.log('end'))
 
     countyPaths.call(dragHandler).each(function () {
       transformUtility(d3.select(this), false)
