@@ -113,12 +113,11 @@ const Pieces = ({
   }, [countyGeometry])
 
   useEffect(() => {
+    d3.selectAll('.county, .state').style('visibility', 'visible')
     if (filteredStates.length) {
       d3.selectAll('.county, .state')
         .filter(({ id }) => (filteredStates.includes(stateId(id)) ? false : true))
         .style('visibility', 'hidden')
-    } else {
-      d3.selectAll('.county, .state').style('visibility', 'visible')
     }
   }, [filteredStates])
 
