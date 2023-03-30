@@ -33,6 +33,12 @@ const Puzzle = ({
     d3.select(`#state-${target.attr('state-id')}`).lower()
   }
 
+  // const filterHidden = () => {
+  //   d3.selectAll('.county').filter(function() {
+  //     return d3.select(`#state-${target.attr('state-id')}`)
+  //   })
+  // }
+
   const dragHandler = d3
     .drag()
     .on('start', function () {
@@ -65,20 +71,20 @@ const Puzzle = ({
   const width = window.outerWidth
   const height = window.outerHeight
 
-  const counties = { type: 'GeometryCollection' }
-  const states = { type: 'GeometryCollection' }
+  const counties = { type: 'GeometryCollection', geometries: countyGeometry }
+  const states = { type: 'GeometryCollection', geometries: stateGeometry }
 
-  if (filteredStates.length) {
-    counties.geometries = countyGeometry.filter(({ id }) =>
-      filteredStates.includes(stateId(id)) ? true : false
-    )
-    states.geometries = stateGeometry.filter(({ id }) =>
-      filteredStates.includes(stateId(id)) ? true : false
-    )
-  } else {
-    counties.geometries = countyGeometry
-    states.geometries = stateGeometry
-  }
+  // if (filteredStates.length) {
+  //   counties.geometries = countyGeometry.filter(({ id }) =>
+  //     filteredStates.includes(stateId(id)) ? true : false
+  //   )
+  //   states.geometries = stateGeometry.filter(({ id }) =>
+  //     filteredStates.includes(stateId(id)) ? true : false
+  //   )
+  // } else {
+  //   counties.geometries = countyGeometry
+  //   states.geometries = stateGeometry
+  // }
 
   // geoAlbersUSA projection, center on window/svg
   const projection = d3
@@ -135,13 +141,24 @@ const Puzzle = ({
     countyPaths.call(dragHandler).each(function () {
       transformUtility(d3.select(this), false)
     })
-  }, [countyGeometry, filteredStates])
+  }, [countyGeometry])
+
+  useEffect(() => {
+    if (filteredStates.length) {
+      d3.selectAll('.county, .state')
+        .style('visibility', 'hidden')
+        .filter(({ id }) => (filteredStates.includes(stateId(id)) ? true : false))
+        .style('visibility', 'visible')
+    } else {
+      d3.selectAll('.county, .state').style('visibility', 'visible')
+    }
+  }, [filteredStates])
 
   return (
     <div>
       <StateFilter setFilter={setFilteredStates} />
       <button onClick={() => reset()}>reset local</button>
-      {tooltipText.length && <ToolTip text={tooltipText} coords={tooltipCoords} />}
+      {tooltipText.length ? <ToolTip text={tooltipText} coords={tooltipCoords} /> : ''}
       <div ref={mapRef}></div>
     </div>
   )
