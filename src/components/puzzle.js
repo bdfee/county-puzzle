@@ -19,45 +19,32 @@ const Puzzle = ({
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
+  // regex transform coordinates, if 0,0 style located, optional return value
+  const transformUtility = (target, withReturn = true) => {
+    const [x, y] = target.attr('transform').match(/-?\d+(\.\d+)?/g)
+    if (+x === 0 && +y === 0) located(target)
+    if (withReturn) return [+x, +y]
+  }
+
+  const located = (target) => {
+    target.attr('stroke-width', 0.1).attr('stroke', 'lightgray').on('.drag', null).lower()
+    d3.select(`#state-${target.attr('state-id')}`).lower()
+  }
+
   const dragHandler = d3
     .drag()
     .on('start', function () {
       setTooltipText('')
-      // class active to bring to the top, remove tooltip
-      d3.select(this).raise().classed('active', true)
-      // remove tool tip on other counties
+      d3.select(this).raise()
       d3.selectAll('.county').attr('pointer-events', 'none')
     })
     .on('drag', function ({ dx, dy }) {
-      // Get the current transform value
-      const transform = d3.select(this).node().transform.baseVal[0].matrix
-      const changeX = transform.e
-      const changeY = transform.f
-      // add the new translation values to dx
+      const { e: changeX, f: changeY } = d3.select(this).node().transform.baseVal[0].matrix
       d3.select(this).attr('transform', `translate(${changeX + dx},${changeY + dy})`)
     })
     .on('end', function (d) {
-      d3.select(this).classed('active', false)
-      // add tool tips
       d3.selectAll('.county').attr('pointer-events', 'all')
-      // if county translate is 0 0, it is located correctly
-
-      const coords = d3
-        .select(this)
-        .attr('transform')
-        .match(/-?\d+(\.\d+)?/g)
-
-      const [x, y] = [+coords[0], +coords[1]]
-      updateCurrentTranslations(d.subject.id, [x, y])
-
-      if (x === 0 && y === 0) {
-        // remove drag handler and adjust stroke style when correctly located
-        d3.select(this)
-          .classed('located', true)
-          .attr('stroke-width', 0.1)
-          .attr('stroke', 'lightgray')
-          .on('.drag', null)
-      }
+      updateCurrentTranslations(d.subject.id, transformUtility(d3.select(this)))
     })
 
   function handleMouseOver(e, d) {
@@ -73,27 +60,15 @@ const Puzzle = ({
     setTooltipText('')
   }
 
-  const width = window.outerWidth
-  const height = window.outerHeight
-
   useEffect(() => {
     // remove any svg el from previous render
     d3.select(mapRef.current).selectAll('*').remove()
 
-    const counties = { type: 'GeometryCollection' }
-    const states = { type: 'GeometryCollection' }
+    const width = window.outerWidth
+    const height = window.outerHeight
 
-    if (filteredStates.length) {
-      counties.geometries = countyGeometry.filter(({ id }) =>
-        filteredStates.includes(stateId(id)) ? true : false
-      )
-      states.geometries = stateGeometry.filter(({ id }) =>
-        filteredStates.includes(stateId(id)) ? true : false
-      )
-    } else {
-      counties.geometries = countyGeometry
-      states.geometries = stateGeometry
-    }
+    const counties = { type: 'GeometryCollection', geometries: countyGeometry }
+    const states = { type: 'GeometryCollection', geometries: stateGeometry }
 
     // geoAlbersUSA projection, center on window/svg
     const projection = d3
@@ -119,7 +94,7 @@ const Puzzle = ({
       .attr('class', 'state')
       .attr('d', pathGenerator)
       .attr('fill', ({ id }) => stateDictionary[id].color)
-      .attr('id', ({ id }) => `${id}`)
+      .attr('id', ({ id }) => `state-${id}`)
 
     // Create a path element for each count
     const countyPaths = svg
@@ -132,27 +107,35 @@ const Puzzle = ({
       .attr('stroke', ({ id }) => stateDictionary[stateId(id)].color)
       .attr('stroke-width', 0.25)
       .attr('fill', 'lightgray')
-      .attr('id', ({ id }) => `county-id-${id}`)
-      .attr('data-state-id', ({ id }) => `state-id-${stateId(id)}`)
+      .attr('id', ({ id }) => `county-${id}`)
+      .attr('state-id', ({ id }) => `${stateId(id)}`)
       .attr('data-name', ({ properties }) => `${properties.name}`)
       .attr(
         'transform',
-        ({ properties }) => `translate(${properties.transpose[0]}, ${properties.transpose[1]})`
+        ({
+          properties: {
+            transpose: [x, y]
+          }
+        }) => `translate(${x}, ${y})`
       )
       .on('mouseover', (e, d) => handleMouseOver(e, d))
       .on('mousemove', (e) => handleMouseMove(e))
       .on('mouseout', handleMouseOut)
 
     countyPaths.call(dragHandler).each(function () {
-      if (d3.select(this).attr('transform') === 'translate(0, 0)') {
-        d3.select(this)
-          .classed('located', true)
-          .attr('stroke-width', 0.1)
-          .attr('stroke', 'lightgray')
-          .on('.drag', null)
-      }
+      transformUtility(d3.select(this), false)
     })
-  }, [countyGeometry, filteredStates])
+  }, [countyGeometry])
+
+  useEffect(() => {
+    if (filteredStates.length) {
+      d3.selectAll('.county, .state')
+        .filter(({ id }) => (filteredStates.includes(stateId(id)) ? false : true))
+        .style('visibility', 'hidden')
+    } else {
+      d3.selectAll('.county, .state').style('visibility', 'visible')
+    }
+  }, [filteredStates])
 
   return (
     <div>
