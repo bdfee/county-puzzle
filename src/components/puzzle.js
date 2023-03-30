@@ -12,7 +12,6 @@ const Puzzle = ({
   stateGeometry,
   reset
 }) => {
-  // const mapRef = useRef()
   const [filteredStates, setFilteredStates] = useState('')
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
