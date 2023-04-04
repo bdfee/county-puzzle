@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { stateDictionary } from '../dictionaries/state'
 import { stateId } from '../utilities'
 
@@ -16,15 +17,23 @@ const Pieces = ({
   updateCurrentTranslations
 }) => {
   const mapRef = useRef()
-  // regex transform coordinates, if 0,0 style located, optional return value
+
   const transformUtility = (target, withReturn = true) => {
     const [x, y] = target.attr('transform').match(/-?\d+(\.\d+)?/g)
-    if (+x === 0 && +y === 0) located(target)
-    if (withReturn) return [+x, +y]
+    if (Math.abs(+x) < 0.25 && Math.abs(+y) < 0.25) {
+      target.attr('transform', 'translate(0,0)')
+      located(target)
+      if (withReturn) return [0, 0]
+    } else if (withReturn) return [+x, +y]
   }
 
   const located = (target) => {
-    target.attr('stroke-width', 0.1).attr('stroke', 'lightgray').on('.drag', null).lower()
+    target
+      .attr('stroke-width', 0.1)
+      .attr('stroke', 'lightgray')
+      .attr('fill', 'dark gray')
+      .on('.drag', null)
+      .lower()
     d3.select(`#state-${target.attr('state-id')}`).lower()
   }
 
@@ -36,12 +45,12 @@ const Pieces = ({
       d3.selectAll('.county').attr('pointer-events', 'none')
     })
     .on('drag', function ({ dx, dy }) {
-      const { e: changeX, f: changeY } = d3.select(this).node().transform.baseVal[0].matrix
-      d3.select(this).attr('transform', `translate(${changeX + dx},${changeY + dy})`)
+      const { e: startX, f: startY } = d3.select(this).node().transform.baseVal[0].matrix
+      d3.select(this).attr('transform', `translate(${startX + dx},${startY + dy})`)
     })
     .on('end', function (d) {
-      d3.selectAll('.county').attr('pointer-events', 'all')
       updateCurrentTranslations(d.subject.id, transformUtility(d3.select(this)))
+      d3.selectAll('.county').attr('pointer-events', 'all')
     })
 
   useEffect(() => {
@@ -105,7 +114,6 @@ const Pieces = ({
       .on('mouseover', (e, d) => handleMouseOver(e, d))
       .on('mousemove', (e) => handleMouseMove(e))
       .on('mouseout', handleMouseOut)
-      .on('end', () => console.log('d3 render end'))
 
     countyPaths.call(dragHandler).each(function () {
       transformUtility(d3.select(this), false)
@@ -121,7 +129,13 @@ const Pieces = ({
     }
   }, [filteredStates])
 
-  return <div ref={mapRef}></div>
+  return (
+    <TransformWrapper>
+      <TransformComponent>
+        <div ref={mapRef} className="pieces"></div>
+      </TransformComponent>
+    </TransformWrapper>
+  )
 }
 
 export default Pieces
