@@ -7,7 +7,7 @@ const StateFilter = (props) => {
         name="states"
         className="state-filter"
         onChange={({ target }) => props.setFilter(target.value)}>
-        <option value={props.filteredStates}>all states</option>
+        <option value="">all states</option>
         {Object.entries(stateDictionary)
           .sort((a, b) => a[1].name.localeCompare(b[1].name))
           .map(([stateId, { name }]) => {

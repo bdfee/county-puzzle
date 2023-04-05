@@ -146,7 +146,7 @@ const Pieces = ({
         .attr('pointer-events', 'none')
         .attr('is-hidden', true)
     }
-  }, [filteredStates])
+  }, [filteredStates, countyGeometry])
 
   return (
     <TransformWrapper ref={transformRef}>
