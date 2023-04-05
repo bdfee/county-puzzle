@@ -17,6 +17,7 @@ const Pieces = ({
   updateCurrentTranslations
 }) => {
   const mapRef = useRef()
+  const transformRef = useRef()
 
   const transformUtility = (target, withReturn = true) => {
     const [x, y] = target.attr('transform').match(/-?\d+(\.\d+)?/g)
@@ -103,6 +104,7 @@ const Pieces = ({
       .attr('id', ({ id }) => `county-${id}`)
       .attr('state-id', ({ id }) => `${stateId(id)}`)
       .attr('data-name', ({ properties }) => `${properties.name}`)
+      .attr('is-hidden', false)
       .attr(
         'transform',
         ({
@@ -111,7 +113,12 @@ const Pieces = ({
           }
         }) => `translate(${x}, ${y})`
       )
-      .on('mouseover', (e, d) => handleMouseOver(e, d))
+      .on('mouseover', function (e, d) {
+        if (d3.select(this).attr('is-hidden') === 'false') {
+          console.log('false')
+          handleMouseOver(e, d)
+        }
+      })
       .on('mousemove', (e) => handleMouseMove(e))
       .on('mouseout', handleMouseOut)
 
@@ -121,17 +128,28 @@ const Pieces = ({
   }, [countyGeometry])
 
   useEffect(() => {
-    d3.selectAll('.county, .state').style('visibility', 'visible').attr('pointer-events', 'all')
+    if (filteredStates.length) {
+      const node = d3.select(`#state-${filteredStates}`).node()
+      transformRef.current.zoomToElement(node, 2, 500, 'easeOut')
+    } else {
+      transformRef.current.resetTransform(500, 'easeOut')
+    }
+
+    d3.selectAll('.county, .state')
+      .style('visibility', 'visible')
+      .attr('pointer-events', 'all')
+      .attr('is-hidden', false)
     if (filteredStates.length) {
       d3.selectAll('.county, .state')
         .filter(({ id }) => (filteredStates.includes(stateId(id)) ? false : true))
         .style('visibility', 'hidden')
         .attr('pointer-events', 'none')
+        .attr('is-hidden', true)
     }
   }, [filteredStates])
 
   return (
-    <TransformWrapper>
+    <TransformWrapper ref={transformRef}>
       <TransformComponent>
         <div ref={mapRef} className="pieces"></div>
       </TransformComponent>

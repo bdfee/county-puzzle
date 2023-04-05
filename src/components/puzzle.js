@@ -31,7 +31,11 @@ const Puzzle = ({
 
   return (
     <div>
-      <Toolbar reset={reset} setFilteredStates={setFilteredStates} />
+      <Toolbar
+        reset={reset}
+        setFilteredStates={setFilteredStates}
+        filteredStates={filteredStates}
+      />
       <Suspense fallback={<div>loading...</div>}>
         <LazyPieces
           setTooltipText={setTooltipText}
