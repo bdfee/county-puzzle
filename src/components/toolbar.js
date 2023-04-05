@@ -1,10 +1,22 @@
 import StateFilter from './state-filter'
 
-const Toolbar = ({ reset, setFilteredStates }) => {
+const Toolbar = ({ reset, setFilteredStates, filteredStates }) => {
+  const handleReset = () => {
+    reset()
+    setFilteredStates('')
+  }
+
   return (
     <div className={'toolbar'}>
-      <StateFilter setFilter={setFilteredStates} />
-      <button onClick={() => reset()}>reset puzzle</button>
+      <div className="toolbar-left">
+        <div>county puzzle</div>
+      </div>
+      <div className="toolbar-right">
+        <StateFilter setFilter={setFilteredStates} filteredStates={filteredStates} />
+        <button className="reset-btn" onClick={handleReset}>
+          reset puzzle
+        </button>
+      </div>
     </div>
   )
 }
