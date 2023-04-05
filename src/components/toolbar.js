@@ -3,7 +3,6 @@ import StateFilter from './state-filter'
 const Toolbar = ({ reset, setFilteredStates, filteredStates }) => {
   const handleReset = () => {
     reset()
-    setFilteredStates('')
   }
 
   return (
