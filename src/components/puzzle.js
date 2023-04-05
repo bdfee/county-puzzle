@@ -17,12 +17,12 @@ const Puzzle = ({
   const [tooltipCoords, setTooltipCoords] = useState([])
 
   function handleMouseOver(e, d) {
-    setTooltipCoords([e.offsetX, e.offsetY])
+    setTooltipCoords([e.pageX, e.pageY])
     setTooltipText(d.properties.name)
   }
 
   function handleMouseMove(e) {
-    setTooltipCoords([e.offsetX, e.offsetY])
+    setTooltipCoords([e.pageX, e.pageY])
   }
 
   function handleMouseOut() {
