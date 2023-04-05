@@ -58,7 +58,7 @@ const Pieces = ({
     d3.select(mapRef.current).selectAll('*').remove()
 
     const width = window.outerWidth
-    const height = window.outerHeight
+    const height = window.innerHeight
 
     const counties = { type: 'GeometryCollection', geometries: countyGeometry }
     const states = { type: 'GeometryCollection', geometries: stateGeometry }
@@ -67,7 +67,7 @@ const Pieces = ({
     const projection = d3
       .geoAlbersUsa()
       .translate([width / 2, height / 2])
-      .scale(1200)
+      .scale(900)
 
     // Create a path generator that converts GeoJSON geometries to SVG path elements
     const pathGenerator = d3.geoPath().projection(projection)

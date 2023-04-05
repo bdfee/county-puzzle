@@ -1,5 +1,6 @@
 import { useState, Suspense, lazy } from 'react'
-import StateFilter from './state-filter'
+// import StateFilter from './state-filter'
+import Toolbar from './toolbar'
 import ToolTip from './tool-tip'
 import '../App.css'
 
@@ -31,8 +32,9 @@ const Puzzle = ({
 
   return (
     <div>
-      <StateFilter setFilter={setFilteredStates} />
-      <button onClick={() => reset()}>reset local</button>
+      {/* <StateFilter setFilter={setFilteredStates} />
+      <button onClick={() => reset()}>reset local</button> */}
+      <Toolbar reset={reset} setFilteredStates={setFilteredStates} />
       <Suspense fallback={<div>loading...</div>}>
         <LazyPieces
           setTooltipText={setTooltipText}
