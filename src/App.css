@@ -3,8 +3,28 @@ html, body {
   padding: 0;
   height: 100%;
   overflow: hidden;
+  font-family: 'Mukta', sans-serif;
 }
 
 .tooltip {
   position: absolute;
+  border: 1px solid black;
+  background-color: white;
+  color: black;
+  padding: 2px 5px;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  background-color: lightgray;
+  justify-content: space-between;
+}
+
+.pieces {
+  margin-top: -10px;
+}
+
+.state-filter {
+    font-family: 'Mukta', sans-serif;
 }
