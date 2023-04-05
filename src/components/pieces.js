@@ -31,7 +31,7 @@ const Pieces = ({
     target
       .attr('stroke-width', 0.1)
       .attr('stroke', 'lightgray')
-      .attr('fill', 'dark gray')
+      .attr('fill', 'slategray')
       .on('.drag', null)
       .lower()
     d3.select(`#state-${target.attr('state-id')}`).lower()
@@ -58,7 +58,7 @@ const Pieces = ({
     d3.select(mapRef.current).selectAll('*').remove()
 
     const width = window.outerWidth
-    const height = window.outerHeight
+    const height = window.innerHeight
 
     const counties = { type: 'GeometryCollection', geometries: countyGeometry }
     const states = { type: 'GeometryCollection', geometries: stateGeometry }
@@ -67,7 +67,7 @@ const Pieces = ({
     const projection = d3
       .geoAlbersUsa()
       .translate([width / 2, height / 2])
-      .scale(1200)
+      .scale(900)
 
     // Create a path generator that converts GeoJSON geometries to SVG path elements
     const pathGenerator = d3.geoPath().projection(projection)
@@ -98,7 +98,7 @@ const Pieces = ({
       .attr('class', 'county')
       .attr('d', pathGenerator)
       .attr('stroke', ({ id }) => stateDictionary[stateId(id)].color)
-      .attr('stroke-width', 0.25)
+      .attr('stroke-width', 0.15)
       .attr('fill', 'lightgray')
       .attr('id', ({ id }) => `county-${id}`)
       .attr('state-id', ({ id }) => `${stateId(id)}`)
@@ -121,11 +121,12 @@ const Pieces = ({
   }, [countyGeometry])
 
   useEffect(() => {
-    d3.selectAll('.county, .state').style('visibility', 'visible')
+    d3.selectAll('.county, .state').style('visibility', 'visible').attr('pointer-events', 'all')
     if (filteredStates.length) {
       d3.selectAll('.county, .state')
         .filter(({ id }) => (filteredStates.includes(stateId(id)) ? false : true))
         .style('visibility', 'hidden')
+        .attr('pointer-events', 'none')
     }
   }, [filteredStates])
 

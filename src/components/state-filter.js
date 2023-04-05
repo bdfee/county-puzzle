@@ -3,11 +3,9 @@ import { stateDictionary } from '../dictionaries/state'
 const StateFilter = (props) => {
   return (
     <div>
-      <label htmlFor="state-filter">Filter Puzzle:</label>
-
       <select
         name="states"
-        id="state-filter"
+        className="state-filter"
         onChange={({ target }) => props.setFilter(target.value)}>
         <option value="">All States</option>
         {Object.entries(stateDictionary)

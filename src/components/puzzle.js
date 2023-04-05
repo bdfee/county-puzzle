@@ -1,6 +1,6 @@
 import { useState, Suspense, lazy } from 'react'
-import StateFilter from './state-filter'
-import ToolTip from './tool-tip'
+import Toolbar from './toolbar'
+import ToolTip from './tooltip'
 import '../App.css'
 
 const LazyPieces = lazy(() => import('./pieces.js'))
@@ -31,8 +31,7 @@ const Puzzle = ({
 
   return (
     <div>
-      <StateFilter setFilter={setFilteredStates} />
-      <button onClick={() => reset()}>reset local</button>
+      <Toolbar reset={reset} setFilteredStates={setFilteredStates} />
       <Suspense fallback={<div>loading...</div>}>
         <LazyPieces
           setTooltipText={setTooltipText}
