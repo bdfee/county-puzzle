@@ -1,18 +1,16 @@
 import { useState, Suspense, lazy } from 'react'
-import Toolbar from './toolbar'
+import Toolbar from './toolbar/index'
 import ToolTip from './tooltip'
-import '../App.css'
-
 const LazyPieces = lazy(() => import('./pieces.js'))
 
 const Puzzle = ({
-  updateCurrentTranslations,
+  updateTranslations,
   countyGeometry,
   baseTopology,
   stateGeometry,
-  reset
+  setCountyGeometryTranslations
 }) => {
-  const [filteredStates, setFilteredStates] = useState('')
+  const [stateFilter, setStateFilter] = useState('')
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
@@ -32,18 +30,18 @@ const Puzzle = ({
   return (
     <div>
       <Toolbar
-        reset={reset}
-        setFilteredStates={setFilteredStates}
-        filteredStates={filteredStates}
+        setStateFilter={setStateFilter}
+        stateFilter={stateFilter}
+        setCountyGeometryTranslations={setCountyGeometryTranslations}
       />
       <Suspense fallback={<div>loading...</div>}>
         <LazyPieces
           setTooltipText={setTooltipText}
-          updateCurrentTranslations={updateCurrentTranslations}
+          updateTranslations={updateTranslations}
           countyGeometry={countyGeometry}
           baseTopology={baseTopology}
           stateGeometry={stateGeometry}
-          filteredStates={filteredStates}
+          stateFilter={stateFilter}
           handleMouseMove={handleMouseMove}
           handleMouseOut={handleMouseOut}
           handleMouseOver={handleMouseOver}
