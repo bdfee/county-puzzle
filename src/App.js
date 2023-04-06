@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import * as d3 from 'd3'
 import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
 import { stateId, randomTranslation } from './utilities'
 import { clear, setItem, getItem, doesItemExist } from './services/localStorage'
+import { snap, snapReverb } from './audio/index'
 
 function App() {
+  const audioRef = useRef()
+
   const [baseTopology, setBaseTopology] = useState(null) // all static topo
   const [baseGeometry, setBaseGeometry] = useState(null) // US50 county / state geometry
   const [countyGeometry, setCountyGeometry] = useState(null) //
@@ -62,8 +65,9 @@ function App() {
         const { id } = county
         if (stateId(id) in localStorageObj) {
           localStorageObj[stateId(id)][id] = translation
+          localStorageObj[stateId(id)].count++
         } else {
-          localStorageObj[stateId(id)] = { [id]: translation }
+          localStorageObj[stateId(id)] = { [id]: translation, count: 0 }
         }
 
         return county
@@ -95,8 +99,24 @@ function App() {
   const updateCurrentTranslations = (id, coordsArr) => {
     const updatedCoords = currentTranslations
     updatedCoords[stateId(id)][id] = coordsArr
+    if (coordsArr[0] === 0 && coordsArr[1] === 0) {
+      updatedCoords[stateId(id)].count--
+      console.log(updatedCoords[stateId(id)])
+      if (updatedCoords[stateId(id)].count === -1) {
+        handlePlay(snapReverb, 0.3)
+      } else {
+        handlePlay(snap, 0.3)
+      }
+    }
     setCurrentTranslations(updatedCoords)
     setMoveCount((moveCount) => moveCount + 1)
+  }
+
+  const handlePlay = (src, currentTime) => {
+    const audio = audioRef.current
+    audio.src = src
+    audio.currentTime = currentTime
+    audio.play()
   }
 
   const handleReset = () => {
@@ -106,9 +126,13 @@ function App() {
 
   return (
     <div className="App">
+      <audio ref={audioRef}>
+        <source type="audio/mpeg" />
+      </audio>
       {countyGeometry && (
         <Puzzle
           updateCurrentTranslations={updateCurrentTranslations}
+          currentTranslations={currentTranslations}
           baseTopology={baseTopology}
           stateGeometry={baseGeometry.states}
           countyGeometry={countyGeometry}

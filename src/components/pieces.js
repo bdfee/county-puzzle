@@ -115,7 +115,6 @@ const Pieces = ({
       )
       .on('mouseover', function (e, d) {
         if (d3.select(this).attr('is-hidden') === 'false') {
-          console.log('false')
           handleMouseOver(e, d)
         }
       })
