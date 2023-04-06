@@ -4,8 +4,7 @@ import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
 import { stateId, randomTranslation } from './utilities'
 import { clear, setItem, getItem, doesItemExist } from './services/localStorage'
-import snap from './audio/snap.mp3'
-import snapReverb from './audio/snap-reverb.mp3'
+import { snap, snapReverb } from './audio/index'
 
 function App() {
   const audioRef = useRef()
@@ -104,10 +103,8 @@ function App() {
       updatedCoords[stateId(id)].count--
       console.log(updatedCoords[stateId(id)])
       if (updatedCoords[stateId(id)].count === -1) {
-        console.log(0)
         handlePlay(snapReverb, 0.3)
       } else {
-        console.log(1)
         handlePlay(snap, 0.3)
       }
     }
