@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+import { browserName } from 'react-device-detect'
 
 import { select, selectAll } from 'd3-selection'
 import { geoAlbersUsa, geoPath } from 'd3-geo'
@@ -42,7 +43,7 @@ const Pieces = ({
     select(`#state-${target.attr('state-id')}`).lower()
   }
 
-  const dragHandler = drag()
+  const dragHandlerChrome = drag()
     .on('start', function () {
       setTooltipText('')
       select(this).raise()
@@ -51,6 +52,37 @@ const Pieces = ({
     .on('drag', function ({ dx, dy }) {
       const { e: startX, f: startY } = select(this).node().transform.baseVal[0].matrix
       select(this).attr('transform', `translate(${startX + dx},${startY + dy})`)
+
+      // Log the new transform string
+    })
+    .on('end', function (d) {
+      updateTranslations(d.subject.id, transformUtility(select(this)))
+      selectAll('.county').attr('pointer-events', 'all')
+    })
+
+  const dragHandlerFirefox = drag()
+    .on('start', function () {
+      setTooltipText('')
+      select(this).raise()
+      selectAll('.county').attr('pointer-events', 'none')
+    })
+    .on('drag', function ({ dx, dy }) {
+      const transformMatrix = select(this).node().transform.baseVal[0].matrix
+      const { e: translateX, f: translateY } = transformMatrix
+      const scaleX = transformMatrix.a
+      const scaleY = transformMatrix.d
+      // get scale from react zoom pan pinch
+      const zoomScale = transformRef.current.instance.transformState.scale
+      // Calculate the new scaled translation
+      const scaledDx = dx / scaleX / zoomScale
+      const scaledDy = dy / scaleY / zoomScale
+
+      const newX = translateX + scaledDx
+      const newY = translateY + scaledDy
+
+      select(this).attr('transform', `translate(${newX},${newY})`)
+
+      // Log the new transform string
     })
     .on('end', function (d) {
       updateTranslations(d.subject.id, transformUtility(select(this)))
@@ -121,6 +153,8 @@ const Pieces = ({
       })
       .on('mousemove', (e) => handleMouseMove(e))
       .on('mouseout', handleMouseOut)
+
+    const dragHandler = browserName === 'Chrome' ? dragHandlerChrome : dragHandlerFirefox
 
     countyPaths.call(dragHandler).each(function () {
       transformUtility(select(this), false)

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import * as d3 from 'd3'
+import { json } from 'd3'
 import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
 import { stateId } from './components/utilities'
@@ -19,9 +19,7 @@ function App() {
     async function getBaseTopology() {
       try {
         // fetch topojson
-        const topologyData = await d3.json(
-          'https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json'
-        )
+        const topologyData = await json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
         // filter out districts and territories, set base geometry of 50 US states
         setBaseGeometry(
           (topologyData.objects = {
