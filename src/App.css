@@ -11,6 +11,7 @@ select:focus {
 }
 button:hover {
   background-color: red;
+  height: 26px;
 }
 
 .tooltip {
@@ -54,6 +55,7 @@ button:hover {
     border: 1px solid black;
     text-align: center;
     background-color: whitesmoke;
+    height: 26px;
 }
 
 .reset-btn {
