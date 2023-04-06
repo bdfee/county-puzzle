@@ -1,12 +1,12 @@
-import { stateDictionary } from '../dictionaries/state'
+import { stateDictionary } from '../../../dictionaries/state'
 
-const StateFilter = (props) => {
+const StateFilter = ({ setStateFilter }) => {
   return (
     <div>
       <select
         name="states"
         className="state-filter"
-        onChange={({ target }) => props.setFilter(target.value)}>
+        onChange={({ target }) => setStateFilter(target.value)}>
         <option value="">all states</option>
         {Object.entries(stateDictionary)
           .sort((a, b) => a[1].name.localeCompare(b[1].name))

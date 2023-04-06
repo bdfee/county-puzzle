@@ -2,17 +2,17 @@ import { useEffect, useState, useRef } from 'react'
 import * as d3 from 'd3'
 import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
-import { stateId, randomTranslation } from './utilities'
-import { clear, setItem, getItem, doesItemExist } from './services/localStorage'
+import { stateId } from './components/utilities'
+import { setStorage, getStorage, doesStorageItemExist } from './services/localStorage'
 import { snap, snapReverb } from './audio/index'
+import './App.css'
 
 function App() {
   const audioRef = useRef()
-
   const [baseTopology, setBaseTopology] = useState(null) // all static topo
   const [baseGeometry, setBaseGeometry] = useState(null) // US50 county / state geometry
-  const [countyGeometry, setCountyGeometry] = useState(null) //
-  const [currentTranslations, setCurrentTranslations] = useState({})
+  const [countyGeometry, setCountyGeometry] = useState(null) // counties for rendering
+  const [activePieceTranslations, setActivePieceTranslations] = useState({}) // piece translation state
   const [moveCount, setMoveCount] = useState(0)
 
   useEffect(() => {
@@ -43,72 +43,80 @@ function App() {
     getBaseTopology()
   }, [])
 
-  const setCountyGeometryCoordinates = () => {
-    let countyGeometry
+  // set puzzle piece translations to counties
+  const setCountyGeometryTranslations = () => {
+    let translatedCountyGeometry
+
     // check for existing coordinates in local storage
-    if (doesItemExist()) {
-      const localStorageCoords = getItem()
-      setCurrentTranslations(localStorageCoords)
+    if (doesStorageItemExist()) {
+      const storedTranslations = getStorage()
+      setActivePieceTranslations(storedTranslations)
+
       // apply local translation to counties
-      countyGeometry = baseGeometry.counties.map((county) => {
-        county.properties.transpose = localStorageCoords[stateId(county.id)][county.id]
+      translatedCountyGeometry = baseGeometry.counties.map((county) => {
+        county.properties.transpose = storedTranslations[stateId(county.id)][county.id]
         return county
       })
     } else {
-      const localStorageObj = {}
+      const translationStorage = {}
+
+      const randomTranslation = () => {
+        const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
+        const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
+        return [randomNumber(), randomNumber()]
+      }
       // apply random translation to each county coords
-      countyGeometry = baseGeometry.counties.map((county) => {
+      translatedCountyGeometry = baseGeometry.counties.map((county) => {
         const translation = randomTranslation()
         county.properties.transpose = translation
 
         // while mapping counties, populate local storage obj with translation
         const { id } = county
-        if (stateId(id) in localStorageObj) {
-          localStorageObj[stateId(id)][id] = translation
-          localStorageObj[stateId(id)].count++
+        if (stateId(id) in translationStorage) {
+          translationStorage[stateId(id)][id] = translation
+          translationStorage[stateId(id)].count++
         } else {
-          localStorageObj[stateId(id)] = { [id]: translation, count: 0 }
+          translationStorage[stateId(id)] = { [id]: translation, count: 0 }
         }
 
         return county
       })
-      setCurrentTranslations(localStorageObj)
+      setActivePieceTranslations(translationStorage)
     }
-    setCountyGeometry(countyGeometry)
+    setCountyGeometry(translatedCountyGeometry)
   }
 
   useEffect(() => {
-    if (baseTopology) setCountyGeometryCoordinates()
+    if (baseTopology) setCountyGeometryTranslations()
   }, [baseTopology])
 
   // local storage on unload
   addEventListener('beforeunload', () => {
     if (moveCount) {
-      setItem(currentTranslations)
+      setStorage(activePieceTranslations)
     }
   })
 
   // every ten moves set local storage
   useEffect(() => {
-    if (moveCount >= 10) {
-      setItem(currentTranslations)
+    if (moveCount >= 9) {
+      setStorage(activePieceTranslations)
       setMoveCount(0)
     }
   }, [moveCount])
 
-  const updateCurrentTranslations = (id, coordsArr) => {
-    const updatedCoords = currentTranslations
+  const updateTranslations = (id, coordsArr) => {
+    const updatedCoords = activePieceTranslations
     updatedCoords[stateId(id)][id] = coordsArr
     if (coordsArr[0] === 0 && coordsArr[1] === 0) {
       updatedCoords[stateId(id)].count--
-      console.log(updatedCoords[stateId(id)])
       if (updatedCoords[stateId(id)].count === -1) {
         handlePlay(snapReverb, 0.3)
       } else {
         handlePlay(snap, 0.3)
       }
     }
-    setCurrentTranslations(updatedCoords)
+    setActivePieceTranslations(updatedCoords)
     setMoveCount((moveCount) => moveCount + 1)
   }
 
@@ -119,26 +127,20 @@ function App() {
     audio.play()
   }
 
-  const handleReset = () => {
-    clear()
-    setCountyGeometryCoordinates()
-  }
-
   return (
     <div className="App">
-      <audio ref={audioRef}>
-        <source type="audio/mpeg" />
-      </audio>
       {countyGeometry && (
         <Puzzle
-          updateCurrentTranslations={updateCurrentTranslations}
-          currentTranslations={currentTranslations}
+          updateTranslations={updateTranslations}
+          setCountyGeometryTranslations={setCountyGeometryTranslations}
           baseTopology={baseTopology}
           stateGeometry={baseGeometry.states}
           countyGeometry={countyGeometry}
-          reset={handleReset}
         />
       )}
+      <audio ref={audioRef}>
+        <source type="audio/mpeg" />
+      </audio>
     </div>
   )
 }

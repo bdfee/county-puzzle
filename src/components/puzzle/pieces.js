@@ -1,20 +1,24 @@
 import { useRef, useEffect } from 'react'
-import * as d3 from 'd3'
-import * as topojson from 'topojson-client'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
-import { stateDictionary } from '../dictionaries/state'
+
+import { select, selectAll } from 'd3-selection'
+import { geoAlbersUsa, geoPath } from 'd3-geo'
+import { drag } from 'd3-drag'
+import { feature } from 'topojson-client'
+
+import { stateDictionary } from '../../dictionaries/state'
 import { stateId } from '../utilities'
 
 const Pieces = ({
   countyGeometry,
   stateGeometry,
   baseTopology,
-  filteredStates,
+  stateFilter,
   handleMouseMove,
   handleMouseOut,
   handleMouseOver,
   setTooltipText,
-  updateCurrentTranslations
+  updateTranslations
 }) => {
   const mapRef = useRef()
   const transformRef = useRef()
@@ -35,28 +39,27 @@ const Pieces = ({
       .attr('fill', 'slategray')
       .on('.drag', null)
       .lower()
-    d3.select(`#state-${target.attr('state-id')}`).lower()
+    select(`#state-${target.attr('state-id')}`).lower()
   }
 
-  const dragHandler = d3
-    .drag()
+  const dragHandler = drag()
     .on('start', function () {
       setTooltipText('')
-      d3.select(this).raise()
-      d3.selectAll('.county').attr('pointer-events', 'none')
+      select(this).raise()
+      selectAll('.county').attr('pointer-events', 'none')
     })
     .on('drag', function ({ dx, dy }) {
-      const { e: startX, f: startY } = d3.select(this).node().transform.baseVal[0].matrix
-      d3.select(this).attr('transform', `translate(${startX + dx},${startY + dy})`)
+      const { e: startX, f: startY } = select(this).node().transform.baseVal[0].matrix
+      select(this).attr('transform', `translate(${startX + dx},${startY + dy})`)
     })
     .on('end', function (d) {
-      updateCurrentTranslations(d.subject.id, transformUtility(d3.select(this)))
-      d3.selectAll('.county').attr('pointer-events', 'all')
+      updateTranslations(d.subject.id, transformUtility(select(this)))
+      selectAll('.county').attr('pointer-events', 'all')
     })
 
   useEffect(() => {
     // remove any svg el from previous render
-    d3.select(mapRef.current).selectAll('*').remove()
+    select(mapRef.current).selectAll('*').remove()
 
     const width = window.outerWidth
     const height = window.innerHeight
@@ -65,16 +68,14 @@ const Pieces = ({
     const states = { type: 'GeometryCollection', geometries: stateGeometry }
 
     // geoAlbersUSA projection, center on window/svg
-    const projection = d3
-      .geoAlbersUsa()
+    const projection = geoAlbersUsa()
       .translate([width / 2, height / 2])
       .scale(900)
 
     // Create a path generator that converts GeoJSON geometries to SVG path elements
-    const pathGenerator = d3.geoPath().projection(projection)
+    const pathGenerator = geoPath().projection(projection)
 
-    const svg = d3
-      .select(mapRef.current)
+    const svg = select(mapRef.current)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
@@ -82,7 +83,7 @@ const Pieces = ({
 
     svg
       .selectAll('.state')
-      .data(topojson.feature(baseTopology, states).features)
+      .data(feature(baseTopology, states).features)
       .enter()
       .append('path')
       .attr('class', 'state')
@@ -93,7 +94,7 @@ const Pieces = ({
     // Create a path element for each count
     const countyPaths = svg
       .selectAll('.county')
-      .data(topojson.feature(baseTopology, counties).features)
+      .data(feature(baseTopology, counties).features)
       .enter()
       .append('path')
       .attr('class', 'county')
@@ -114,7 +115,7 @@ const Pieces = ({
         }) => `translate(${x}, ${y})`
       )
       .on('mouseover', function (e, d) {
-        if (d3.select(this).attr('is-hidden') === 'false') {
+        if (select(this).attr('is-hidden') === 'false') {
           handleMouseOver(e, d)
         }
       })
@@ -122,30 +123,30 @@ const Pieces = ({
       .on('mouseout', handleMouseOut)
 
     countyPaths.call(dragHandler).each(function () {
-      transformUtility(d3.select(this), false)
+      transformUtility(select(this), false)
     })
   }, [countyGeometry])
 
   useEffect(() => {
-    if (filteredStates.length) {
-      const node = d3.select(`#state-${filteredStates}`).node()
+    if (stateFilter) {
+      const node = select(`#state-${stateFilter}`).node()
       transformRef.current.zoomToElement(node, 2, 500, 'easeOut')
     } else {
       transformRef.current.resetTransform(500, 'easeOut')
     }
 
-    d3.selectAll('.county, .state')
+    selectAll('.county, .state')
       .style('visibility', 'visible')
       .attr('pointer-events', 'all')
       .attr('is-hidden', false)
-    if (filteredStates.length) {
-      d3.selectAll('.county, .state')
-        .filter(({ id }) => (filteredStates.includes(stateId(id)) ? false : true))
+    if (stateFilter.length) {
+      selectAll('.county, .state')
+        .filter(({ id }) => (stateFilter.includes(stateId(id)) ? false : true))
         .style('visibility', 'hidden')
         .attr('pointer-events', 'none')
         .attr('is-hidden', true)
     }
-  }, [filteredStates, countyGeometry])
+  }, [stateFilter, countyGeometry])
 
   return (
     <TransformWrapper ref={transformRef}>
