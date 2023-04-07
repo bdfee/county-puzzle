@@ -1,19 +1,19 @@
 {
   "files": {
     "main.css": "/county-puzzle/static/css/main.37a9884f.css",
-    "main.js": "/county-puzzle/static/js/main.f49d87d7.js",
+    "main.js": "/county-puzzle/static/js/main.d809afa0.js",
     "static/js/563.6470c469.chunk.js": "/county-puzzle/static/js/563.6470c469.chunk.js",
-    "static/js/258.f207d2e2.chunk.js": "/county-puzzle/static/js/258.f207d2e2.chunk.js",
+    "static/js/993.2a1855b3.chunk.js": "/county-puzzle/static/js/993.2a1855b3.chunk.js",
     "static/media/snap-reverb.mp3": "/county-puzzle/static/media/snap-reverb.ad1cd576e71a2c786b0f.mp3",
     "static/media/snap.mp3": "/county-puzzle/static/media/snap.91178454bbb757ef472f.mp3",
     "index.html": "/county-puzzle/index.html",
     "main.37a9884f.css.map": "/county-puzzle/static/css/main.37a9884f.css.map",
-    "main.f49d87d7.js.map": "/county-puzzle/static/js/main.f49d87d7.js.map",
+    "main.d809afa0.js.map": "/county-puzzle/static/js/main.d809afa0.js.map",
     "563.6470c469.chunk.js.map": "/county-puzzle/static/js/563.6470c469.chunk.js.map",
-    "258.f207d2e2.chunk.js.map": "/county-puzzle/static/js/258.f207d2e2.chunk.js.map"
+    "993.2a1855b3.chunk.js.map": "/county-puzzle/static/js/993.2a1855b3.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.37a9884f.css",
-    "static/js/main.f49d87d7.js"
+    "static/js/main.d809afa0.js"
   ]
 }
