@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { json } from 'd3'
+import { isMobile } from 'react-device-detect'
 import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
 import { stateId } from './components/utilities'
@@ -125,6 +126,9 @@ function App() {
     audio.play()
   }
 
+  if (isMobile) {
+    return <div>This content is currently supported for desktop</div>
+  }
   return (
     <div className="App">
       {countyGeometry && (
