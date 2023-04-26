@@ -94,7 +94,7 @@ const Pieces = ({
     select(mapRef.current).selectAll('*').remove()
 
     const width = window.outerWidth
-    const height = window.innerHeight
+    const height = window.outerHeight
 
     const counties = { type: 'GeometryCollection', geometries: countyGeometry }
     const states = { type: 'GeometryCollection', geometries: stateGeometry }
