@@ -9,9 +9,9 @@ html, body {
 select:focus {
   outline: none;
 }
+
 button:hover {
   background-color: red;
-  height: 26px;
 }
 
 .tooltip {
@@ -37,7 +37,6 @@ button:hover {
   flex-direction: row;
   justify-content: flex-end;
   align-items: center;
-
 }
 
 .toolbar-left {
