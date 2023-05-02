@@ -59,9 +59,10 @@ function App() {
     } else {
       const translationStorage = {}
 
+      const scatterFactor = 40
       const randomTranslation = () => {
         const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-        const randomNumber = () => Math.floor(Math.random() * 100 * randomNegative())
+        const randomNumber = () => Math.floor(Math.random() * scatterFactor * randomNegative())
         return [randomNumber(), randomNumber()]
       }
       // apply random translation to each county coords
