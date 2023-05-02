@@ -59,7 +59,7 @@ function App() {
     } else {
       const translationStorage = {}
 
-      const scatterFactor = 40
+      const scatterFactor = 50
       const randomTranslation = () => {
         const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
         const randomNumber = () => Math.floor(Math.random() * scatterFactor * randomNegative())

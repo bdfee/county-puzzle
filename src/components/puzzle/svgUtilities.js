@@ -44,7 +44,7 @@ export const filterStates = (stateFilter) => {
 export const updateZoom = (transformRef, stateFilter) => {
   if (stateFilter) {
     const node = select(`#state-${stateFilter}`).node()
-    transformRef.current.zoomToElement(node, 2, 500, 'easeOut')
+    transformRef.current.zoomToElement(node, 4, 500, 'easeOut')
   } else {
     transformRef.current.resetTransform(500, 'easeOut')
   }
