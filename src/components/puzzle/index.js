@@ -1,7 +1,7 @@
 import { useState, Suspense, lazy } from 'react'
 import Toolbar from './toolbar/index'
 import ToolTip from './tooltip'
-const LazyPieces = lazy(() => import('./pieces.js'))
+const LazySvgPieces = lazy(() => import('./svgPieces.js'))
 
 const Puzzle = ({
   updateTranslations,
@@ -14,17 +14,17 @@ const Puzzle = ({
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
-  function handleMouseOver(e, d) {
-    setTooltipCoords([e.pageX, e.pageY])
-    setTooltipText(d.properties.name)
-  }
-
-  function handleMouseMove(e) {
-    setTooltipCoords([e.pageX, e.pageY])
-  }
-
-  function handleMouseOut() {
-    setTooltipText('')
+  const handlers = {
+    mouseOver(pageX, pageY, properties) {
+      setTooltipCoords([pageX, pageY])
+      setTooltipText(properties.name)
+    },
+    mouseMove(pageX, pageY) {
+      setTooltipCoords([pageX, pageY])
+    },
+    mouseOut() {
+      setTooltipText('')
+    }
   }
 
   return (
@@ -35,16 +35,14 @@ const Puzzle = ({
         setCountyGeometryTranslations={setCountyGeometryTranslations}
       />
       <Suspense fallback={<div>loading...</div>}>
-        <LazyPieces
+        <LazySvgPieces
           setTooltipText={setTooltipText}
           updateTranslations={updateTranslations}
           countyGeometry={countyGeometry}
           baseTopology={baseTopology}
           stateGeometry={stateGeometry}
           stateFilter={stateFilter}
-          handleMouseMove={handleMouseMove}
-          handleMouseOut={handleMouseOut}
-          handleMouseOver={handleMouseOver}
+          handlers={handlers}
         />
       </Suspense>
       {tooltipText.length ? <ToolTip text={tooltipText} coords={tooltipCoords} /> : ''}
