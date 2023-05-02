@@ -24,23 +24,29 @@ const Pieces = ({
   const mapRef = useRef()
   const transformRef = useRef()
 
-  const transformUtility = (target, withReturn = true) => {
-    const [x, y] = target.attr('transform').match(/-?\d+(\.\d+)?/g)
-    if (Math.abs(+x) < 0.25 && Math.abs(+y) < 0.25) {
-      target.attr('transform', 'translate(0,0)')
-      located(target)
+  // checks if target's transform values are within threshold to be considered located
+  // optionally returns the x, y values as number
+  const transformUtility = (selection, withReturn = true) => {
+    const threshold = 0.75
+    const [x, y] = selection.attr('transform').match(/-?\d+(\.\d+)?/g)
+    if (Math.abs(+x) < threshold && Math.abs(+y) < threshold) {
+      applyLocatedAttr(selection)
       if (withReturn) return [0, 0]
     } else if (withReturn) return [+x, +y]
   }
 
-  const located = (target) => {
-    target
+  // pass a d3 selection, applys 'located' attributes
+  // lowers the county to the bottom then lowers the state to bottom
+  const applyLocatedAttr = (selection) => {
+    selection
+      .attr('transform', 'translate(0,0)')
       .attr('stroke-width', 0.1)
       .attr('stroke', 'lightgray')
       .attr('fill', 'slategray')
       .on('.drag', null)
       .lower()
-    select(`#state-${target.attr('state-id')}`).lower()
+
+    select(`#state-${selection.attr('state-id')}`).lower()
   }
 
   const dragHandlerChrome = drag()
