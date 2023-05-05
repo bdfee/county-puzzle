@@ -2,10 +2,10 @@ import StateFilter from './state-filter'
 import ResetButton from './reset-button'
 import { clearStorage } from '../../../services/localStorage'
 
-const Toolbar = ({ setCountyGeometryTranslations, setStateFilter, stateFilter }) => {
+const Toolbar = ({ resetTranslations, setStateFilter, stateFilter }) => {
   const handleReset = () => {
     clearStorage()
-    setCountyGeometryTranslations()
+    resetTranslations()
   }
 
   return (

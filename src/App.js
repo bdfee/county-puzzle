@@ -14,7 +14,7 @@ function App() {
   const audioRef = useRef()
   const [baseTopology, setBaseTopology] = useState(null) // all static topo
   const [baseGeometry, setBaseGeometry] = useState(null) // US50 county / state geometry
-  const [countyGeometry, setCountyGeometry] = useState(null) // counties for rendering
+  const [translatedCountyGeometry, setTranslatedCountyGeometry] = useState(null) // counties for rendering
   const [activeTranslations, setActiveTranslations] = useState({}) // piece translation state
   const [moveCount, setMoveCount] = useState(0)
 
@@ -46,7 +46,7 @@ function App() {
 
   // we store or generate only the x,y coordinate of the translation. Once basetopology is loaded, set translations for each county
   useEffect(() => {
-    if (baseTopology) setCountyGeometryTranslations()
+    if (baseTopology) initializeTranslations()
   }, [baseTopology])
 
   // setting local storage periodically
@@ -93,7 +93,7 @@ function App() {
       }
     }
 
-    const geo = baseGeometry.counties.map((county) => {
+    const countyGeometry = baseGeometry.counties.map((county) => {
       const translation = randomTranslation()
       addTranslationToStore(county, translation)
       county.properties.transpose = translation
@@ -101,15 +101,19 @@ function App() {
     })
 
     setActiveTranslations(translationStore)
-    return geo
+    return countyGeometry
   }
 
-  const setCountyGeometryTranslations = () => {
+  const initializeTranslations = () => {
     if (doesStorageItemExist()) {
-      setCountyGeometry(loadStoredTranslations())
+      setTranslatedCountyGeometry(loadStoredTranslations())
     } else {
-      setCountyGeometry(generateNewTranslations())
+      setTranslatedCountyGeometry(generateNewTranslations())
     }
+  }
+
+  const resetTranslations = () => {
+    setTranslatedCountyGeometry(generateNewTranslations())
   }
 
   // if translation = 0,0 play sound. if it is the final county to be located in a given state, play reverbsnap
@@ -136,13 +140,13 @@ function App() {
   }
   return (
     <div className="App">
-      {countyGeometry && (
+      {translatedCountyGeometry && (
         <Puzzle
           updateTranslations={updateTranslations}
-          setCountyGeometryTranslations={setCountyGeometryTranslations}
+          resetTranslations={resetTranslations}
           baseTopology={baseTopology}
           stateGeometry={baseGeometry.states}
-          countyGeometry={countyGeometry}
+          translatedCountyGeometry={translatedCountyGeometry}
         />
       )}
       <audio ref={audioRef}>

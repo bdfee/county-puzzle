@@ -5,10 +5,10 @@ const LazySvgPieces = lazy(() => import('./svgPieces.js'))
 
 const Puzzle = ({
   updateTranslations,
-  countyGeometry,
+  translatedCountyGeometry,
   baseTopology,
   stateGeometry,
-  setCountyGeometryTranslations
+  resetTranslations
 }) => {
   const [stateFilter, setStateFilter] = useState('')
   const [tooltipText, setTooltipText] = useState('')
@@ -33,13 +33,13 @@ const Puzzle = ({
       <Toolbar
         setStateFilter={setStateFilter}
         stateFilter={stateFilter}
-        setCountyGeometryTranslations={setCountyGeometryTranslations}
+        resetTranslations={resetTranslations}
       />
       <Suspense fallback={<div>loading...</div>}>
         <LazySvgPieces
           setTooltipText={setTooltipText}
           updateTranslations={updateTranslations}
-          countyGeometry={countyGeometry}
+          translatedCountyGeometry={translatedCountyGeometry}
           baseTopology={baseTopology}
           stateGeometry={stateGeometry}
           stateFilter={stateFilter}
