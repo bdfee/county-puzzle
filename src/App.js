@@ -44,6 +44,7 @@ function App() {
     getBaseTopology()
   }, [])
 
+  // we store or generate only the x,y coordinate of the translation. Once basetopology is loaded, set translations for each county
   useEffect(() => {
     if (baseTopology) setCountyGeometryTranslations()
   }, [baseTopology])
@@ -70,43 +71,45 @@ function App() {
     return [randomNumber(), randomNumber()]
   }
 
-  // set county translations
-  const setCountyGeometryTranslations = () => {
-    let translatedCountyGeometry
+  const loadStoredTranslations = () => {
+    const storedTranslations = getStorage()
+    setActiveTranslations(storedTranslations)
 
-    // check for existing coordinates in local storage
-    if (doesStorageItemExist()) {
-      const storedTranslations = getStorage()
-      setActiveTranslations(storedTranslations)
+    return baseGeometry.counties.map((county) => {
+      county.properties.transpose = storedTranslations[stateId(county.id)][county.id]
+      return county
+    })
+  }
 
-      // apply local translation to counties
-      translatedCountyGeometry = baseGeometry.counties.map((county) => {
-        county.properties.transpose = storedTranslations[stateId(county.id)][county.id]
-        return county
-      })
-    } else {
-      // create object for saving county coordinates
-      const translationStorage = {}
-      // generate scattered coordinates for each county
-      // apply random translation to each county
-      translatedCountyGeometry = baseGeometry.counties.map((county) => {
-        const translation = randomTranslation()
-        county.properties.transpose = translation
-
-        // while mapping counties, populate local storage obj with translation
-        const { id } = county
-        if (stateId(id) in translationStorage) {
-          translationStorage[stateId(id)][id] = translation
-          translationStorage[stateId(id)].count++
-        } else {
-          translationStorage[stateId(id)] = { [id]: translation, count: 1 }
-        }
-
-        return county
-      })
-      setActiveTranslations(translationStorage)
+  const generateNewTranslations = () => {
+    const translationStore = {}
+    const addTranslationToStore = (county, translation) => {
+      const state = stateId(county.id)
+      if (state in translationStore) {
+        translationStore[state][county.id] = translation
+        translationStore[state].count++
+      } else {
+        translationStore[state] = { [county.id]: translation, count: 1 }
+      }
     }
-    setCountyGeometry(translatedCountyGeometry)
+
+    const geo = baseGeometry.counties.map((county) => {
+      const translation = randomTranslation()
+      addTranslationToStore(county, translation)
+      county.properties.transpose = translation
+      return county
+    })
+
+    setActiveTranslations(translationStore)
+    return geo
+  }
+
+  const setCountyGeometryTranslations = () => {
+    if (doesStorageItemExist()) {
+      setCountyGeometry(loadStoredTranslations())
+    } else {
+      setCountyGeometry(generateNewTranslations())
+    }
   }
 
   // if translation = 0,0 play sound. if it is the final county to be located in a given state, play reverbsnap
