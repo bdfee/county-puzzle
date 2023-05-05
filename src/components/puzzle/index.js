@@ -14,6 +14,7 @@ const Puzzle = ({
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
+  // handlers for setting tool tip
   const handlers = {
     mouseOver(pageX, pageY, properties) {
       setTooltipCoords([pageX, pageY])

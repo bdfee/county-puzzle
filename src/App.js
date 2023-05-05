@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
 import { json } from 'd3'
 import { isMobile } from 'react-device-detect'
+
 import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
 import { stateId } from './components/utilities'
 import { setStorage, getStorage, doesStorageItemExist } from './services/localStorage'
+
 import { snap, snapReverb } from './audio/index'
 import './App.css'
 
@@ -13,7 +15,7 @@ function App() {
   const [baseTopology, setBaseTopology] = useState(null) // all static topo
   const [baseGeometry, setBaseGeometry] = useState(null) // US50 county / state geometry
   const [countyGeometry, setCountyGeometry] = useState(null) // counties for rendering
-  const [activePieceTranslations, setActivePieceTranslations] = useState({}) // piece translation state
+  const [activeTranslations, setActiveTranslations] = useState({}) // piece translation state
   const [moveCount, setMoveCount] = useState(0)
 
   useEffect(() => {
@@ -42,14 +44,40 @@ function App() {
     getBaseTopology()
   }, [])
 
-  // set puzzle piece translations to counties
+  useEffect(() => {
+    if (baseTopology) setCountyGeometryTranslations()
+  }, [baseTopology])
+
+  // setting local storage periodically
+  useEffect(() => {
+    if (moveCount >= 9) {
+      setStorage(activeTranslations)
+      setMoveCount(0)
+    }
+  }, [moveCount])
+
+  // set local storage on unload
+  addEventListener('beforeunload', () => {
+    if (moveCount) {
+      setStorage(activeTranslations)
+    }
+  })
+
+  const randomTranslation = () => {
+    const scatterFactor = 50
+    const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
+    const randomNumber = () => Math.floor(Math.random() * scatterFactor * randomNegative())
+    return [randomNumber(), randomNumber()]
+  }
+
+  // set county translations
   const setCountyGeometryTranslations = () => {
     let translatedCountyGeometry
 
     // check for existing coordinates in local storage
     if (doesStorageItemExist()) {
       const storedTranslations = getStorage()
-      setActivePieceTranslations(storedTranslations)
+      setActiveTranslations(storedTranslations)
 
       // apply local translation to counties
       translatedCountyGeometry = baseGeometry.counties.map((county) => {
@@ -57,15 +85,10 @@ function App() {
         return county
       })
     } else {
+      // create object for saving county coordinates
       const translationStorage = {}
-
-      const scatterFactor = 50
-      const randomTranslation = () => {
-        const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-        const randomNumber = () => Math.floor(Math.random() * scatterFactor * randomNegative())
-        return [randomNumber(), randomNumber()]
-      }
-      // apply random translation to each county coords
+      // generate scattered coordinates for each county
+      // apply random translation to each county
       translatedCountyGeometry = baseGeometry.counties.map((county) => {
         const translation = randomTranslation()
         county.properties.transpose = translation
@@ -76,54 +99,32 @@ function App() {
           translationStorage[stateId(id)][id] = translation
           translationStorage[stateId(id)].count++
         } else {
-          translationStorage[stateId(id)] = { [id]: translation, count: 0 }
+          translationStorage[stateId(id)] = { [id]: translation, count: 1 }
         }
 
         return county
       })
-      setActivePieceTranslations(translationStorage)
+      setActiveTranslations(translationStorage)
     }
     setCountyGeometry(translatedCountyGeometry)
   }
 
-  useEffect(() => {
-    if (baseTopology) setCountyGeometryTranslations()
-  }, [baseTopology])
-
-  // local storage on unload
-  addEventListener('beforeunload', () => {
-    if (moveCount) {
-      setStorage(activePieceTranslations)
-    }
-  })
-
-  // every ten moves set local storage
-  useEffect(() => {
-    if (moveCount >= 9) {
-      setStorage(activePieceTranslations)
-      setMoveCount(0)
-    }
-  }, [moveCount])
-
-  const updateTranslations = (id, coordsArr) => {
-    const updatedCoords = activePieceTranslations
-    updatedCoords[stateId(id)][id] = coordsArr
-    if (coordsArr[0] === 0 && coordsArr[1] === 0) {
+  // if translation = 0,0 play sound. if it is the final county to be located in a given state, play reverbsnap
+  const updateTranslations = (id, [x, y]) => {
+    const updatedCoords = activeTranslations
+    updatedCoords[stateId(id)][id] = [x, y]
+    if (x === 0 && y === 0) {
       updatedCoords[stateId(id)].count--
-      if (updatedCoords[stateId(id)].count === -1) {
-        handlePlay(snapReverb, 0.3)
-      } else {
-        handlePlay(snap, 0.3)
-      }
+      handlePlay(updatedCoords[stateId(id)].count)
     }
-    setActivePieceTranslations(updatedCoords)
+    setActiveTranslations(updatedCoords)
     setMoveCount((moveCount) => moveCount + 1)
   }
 
-  const handlePlay = (src, currentTime) => {
+  const handlePlay = (count) => {
     const audio = audioRef.current
-    audio.src = src
-    audio.currentTime = currentTime
+    audio.src = count === 0 ? snapReverb : snap
+    audio.currentTime = 0.3
     audio.play()
   }
 
