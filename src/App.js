@@ -5,8 +5,9 @@ import { isMobile } from 'react-device-detect'
 import Puzzle from './components/puzzle'
 import { non50StatesIds } from './dictionaries/state'
 import { stateId } from './components/utilities'
-import { setStorage, getStorage, doesStorageItemExist } from './services/localStorage'
+import { setStorage, clearStorage } from './services/localStorage'
 
+import { generateNewTranslations, initializeTranslations } from './translation.helpers'
 import { snap, snapReverb } from './audio/index'
 import './App.css'
 
@@ -40,7 +41,11 @@ function App() {
         // store arcs, bbox, type, and map transform to be passed to d3 as-is
         baseTopologyRef.current = topologyData
         // load existing translations from local storage or generate new translations if no store
-        initializeTranslations()
+        initializeTranslations(
+          setTranslatedCountyGeometry,
+          setActiveTranslations,
+          baseGeometryRef.current
+        )
       } catch (error) {
         console.log(error)
       }
@@ -63,59 +68,6 @@ function App() {
     }
   })
 
-  // generate a random translation coord, moderated by the scatterFactor.
-  const randomTranslation = () => {
-    const scatterFactor = 50
-    const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-    const randomNumber = () => Math.floor(Math.random() * scatterFactor * randomNegative())
-    return [randomNumber(), randomNumber()]
-  }
-
-  const loadStoredTranslations = () => {
-    const storedTranslations = getStorage()
-    setActiveTranslations(storedTranslations)
-
-    return baseGeometryRef.current.counties.map((county) => {
-      county.properties.transpose = storedTranslations[stateId(county.id)][county.id]
-      return county
-    })
-  }
-
-  const generateNewTranslations = () => {
-    const translationStore = {}
-    const addTranslationToStore = (county, translation) => {
-      const state = stateId(county.id)
-      if (state in translationStore) {
-        translationStore[state][county.id] = translation
-        translationStore[state].count++
-      } else {
-        translationStore[state] = { [county.id]: translation, count: 1 }
-      }
-    }
-
-    const countyGeometry = baseGeometryRef.current.counties.map((county) => {
-      const translation = randomTranslation()
-      addTranslationToStore(county, translation)
-      county.properties.transpose = translation
-      return county
-    })
-
-    setActiveTranslations(translationStore)
-    return countyGeometry
-  }
-
-  const initializeTranslations = () => {
-    if (doesStorageItemExist()) {
-      setTranslatedCountyGeometry(loadStoredTranslations())
-    } else {
-      setTranslatedCountyGeometry(generateNewTranslations())
-    }
-  }
-
-  const resetTranslations = () => {
-    setTranslatedCountyGeometry(generateNewTranslations())
-  }
-
   // if translation = 0,0 play sound. if it is the final county to be located in a given state, play reverbsnap
   const updateTranslations = (id, [x, y]) => {
     const updatedCoords = activeTranslations
@@ -126,6 +78,13 @@ function App() {
     }
     setActiveTranslations(updatedCoords)
     setMoveCount((moveCount) => moveCount + 1)
+  }
+
+  const resetTranslations = () => {
+    clearStorage()
+    setTranslatedCountyGeometry(
+      generateNewTranslations(setActiveTranslations, baseGeometryRef.current)
+    )
   }
 
   const handlePlay = (count) => {
