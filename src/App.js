@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react'
-// import { json } from 'd3'
 import { json } from './helpers/d3.imports'
 import { isMobile } from 'react-device-detect'
 
