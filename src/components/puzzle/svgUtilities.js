@@ -1,4 +1,4 @@
-import { select, selectAll } from 'd3-selection'
+import { select, selectAll } from '../../helpers/d3.imports'
 import { stateId } from '../../helpers/utilities'
 
 // pass a d3 selection, applys 'located' attributes
