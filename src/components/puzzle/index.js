@@ -1,5 +1,4 @@
 import { useState, Suspense, lazy } from 'react'
-import Toolbar from './toolbar/index'
 import ToolTip from './tooltip'
 const LazySvgPieces = lazy(() => import('./svgPieces.js'))
 
@@ -8,9 +7,9 @@ const Puzzle = ({
   translatedCountyGeometry,
   baseTopology,
   stateGeometry,
-  resetTranslations
+  stateFilter
 }) => {
-  const [stateFilter, setStateFilter] = useState('')
+  // const [stateFilter, setStateFilter] = useState('')
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
@@ -30,11 +29,6 @@ const Puzzle = ({
 
   return (
     <div>
-      <Toolbar
-        setStateFilter={setStateFilter}
-        stateFilter={stateFilter}
-        resetTranslations={resetTranslations}
-      />
       <Suspense fallback={<div>loading...</div>}>
         <LazySvgPieces
           setTooltipText={setTooltipText}
