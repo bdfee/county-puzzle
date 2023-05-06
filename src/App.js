@@ -21,6 +21,8 @@ function App() {
   const [translatedCountyGeometry, setTranslatedCountyGeometry] = useState(null) // counties for rendering
   const [activeTranslations, setActiveTranslations] = useState({}) // piece translation state
   const [moveCount, setMoveCount] = useState(0)
+  const [stateFilter, setStateFilter] = useState('')
+
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -110,6 +112,11 @@ function App() {
 
   return (
     <div className="App">
+      <Toolbar
+        setStateFilter={setStateFilter}
+        stateFilter={stateFilter}
+        resetTranslations={resetTranslations}
+      />
       {translatedCountyGeometry && (
         <Puzzle
           updateTranslations={updateTranslations}
@@ -117,6 +124,7 @@ function App() {
           baseTopology={baseTopologyRef.current}
           stateGeometry={baseGeometryRef.current.states}
           translatedCountyGeometry={translatedCountyGeometry}
+          stateFilter={stateFilter}
         />
       )}
       <AudioPlayer ref={audioPlayerRef} />
