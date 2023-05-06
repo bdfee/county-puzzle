@@ -4,10 +4,10 @@ import { isMobile } from 'react-device-detect'
 
 import Puzzle from './components/puzzle'
 import AudioPlayer from './components/audio-player'
-import Toolbar from './components/puzzle/toolbar'
+import Toolbar from './components/toolbar'
 
-import { non50StatesIds } from './dictionaries/state'
 import { setStorage, clearStorage } from './services/localStorage'
+import { non50StatesIds } from './helpers/state.dictionary'
 import { generateNewTranslations, initializeTranslations } from './helpers/translation.helpers'
 import { stateId } from './helpers/utilities'
 
@@ -97,7 +97,12 @@ function App() {
   }
 
   if (isMobile) {
-    return <div>This content is currently supported for desktop</div>
+    return (
+      <>
+        <Toolbar />
+        <div>This content is currently supported for desktop</div>
+      </>
+    )
   }
 
   if (error) {

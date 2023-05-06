@@ -5,7 +5,7 @@ import { select, selectAll } from 'd3-selection'
 import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { drag } from 'd3-drag'
 import { feature } from 'topojson-client'
-import { stateDictionary } from '../../dictionaries/state'
+import { stateDictionary } from '../../helpers/state.dictionary'
 import { stateId } from '../../helpers/utilities'
 import { transformUtility, filterStates, updateZoom } from './svgUtilities'
 
@@ -14,12 +14,13 @@ const Pieces = ({
   stateGeometry,
   baseTopology,
   stateFilter,
-  handlers,
+  toolTipHandlers,
   setTooltipText,
   updateTranslations
 }) => {
   const mapRef = useRef()
   const transformRef = useRef()
+  const { showTip, moveTip, clearTip } = toolTipHandlers
 
   // chrome is automatically factoring in the scale factor from zoom pan pinch
   // the zoom factor needs to be accounted for when dragging
@@ -124,11 +125,11 @@ const Pieces = ({
       )
       .on('mouseover', function ({ pageX, pageY }, { properties }) {
         if (select(this).attr('is-hidden') === 'false') {
-          handlers.mouseOver(pageX, pageY, properties)
+          showTip(pageX, pageY, properties)
         }
       })
-      .on('mousemove', ({ pageX, pageY }) => handlers.mouseMove(pageX, pageY))
-      .on('mouseout', () => handlers.mouseOut())
+      .on('mousemove', ({ pageX, pageY }) => moveTip(pageX, pageY))
+      .on('mouseout', () => clearTip())
 
     const dragHandler = browserName === 'Chrome' ? dragHandlerChrome : dragHandlerFirefox
 

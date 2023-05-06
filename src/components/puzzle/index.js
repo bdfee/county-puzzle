@@ -14,30 +14,30 @@ const Puzzle = ({
   const [tooltipCoords, setTooltipCoords] = useState([])
 
   // handlers for setting tool tip
-  const handlers = {
-    mouseOver(pageX, pageY, properties) {
+  const toolTipHandlers = {
+    showTip(pageX, pageY, { name }) {
       setTooltipCoords([pageX, pageY])
-      setTooltipText(properties.name)
+      setTooltipText(name)
     },
-    mouseMove(pageX, pageY) {
+    moveTip(pageX, pageY) {
       setTooltipCoords([pageX, pageY])
     },
-    mouseOut() {
+    clearTip() {
       setTooltipText('')
     }
   }
 
   return (
     <div>
-      <Suspense fallback={<div>loading...</div>}>
+      <Suspense fallback={<div>loading puzzle...</div>}>
         <LazySvgPieces
-          setTooltipText={setTooltipText}
           updateTranslations={updateTranslations}
           translatedCountyGeometry={translatedCountyGeometry}
           baseTopology={baseTopology}
           stateGeometry={stateGeometry}
           stateFilter={stateFilter}
-          handlers={handlers}
+          setTooltipText={setTooltipText}
+          toolTipHandlers={toolTipHandlers}
         />
       </Suspense>
       {tooltipText.length ? <ToolTip text={tooltipText} coords={tooltipCoords} /> : ''}
