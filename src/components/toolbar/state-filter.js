@@ -1,4 +1,4 @@
-import { stateDictionary } from '../../../dictionaries/state'
+import { stateDictionary } from '../../helpers/state.dictionary'
 
 const StateFilter = ({ setStateFilter }) => {
   return (

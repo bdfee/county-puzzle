@@ -1,5 +1,6 @@
 const ToolTip = ({ text, coords }) => {
-  const tooltipStyle = { left: coords[0] + 20, top: coords[1] + 20 }
+  const [x, y] = coords
+  const tooltipStyle = { left: x + 20, top: y + 20 }
 
   return (
     <div className="tooltip" style={tooltipStyle}>
