@@ -12,8 +12,9 @@ import './App.css'
 
 function App() {
   const audioRef = useRef()
-  const [baseTopology, setBaseTopology] = useState(null) // all static topo
-  const [baseGeometry, setBaseGeometry] = useState(null) // US50 county / state geometry
+  const baseGeometryRef = useRef(null)
+  const baseTopologyRef = useRef(null)
+
   const [translatedCountyGeometry, setTranslatedCountyGeometry] = useState(null) // counties for rendering
   const [activeTranslations, setActiveTranslations] = useState({}) // piece translation state
   const [moveCount, setMoveCount] = useState(0)
@@ -23,31 +24,29 @@ function App() {
       try {
         // fetch topojson
         const topologyData = await json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
-        // filter out districts and territories, set base geometry of 50 US states
-        setBaseGeometry(
-          (topologyData.objects = {
-            counties: topologyData.objects.counties.geometries.filter(({ id }) =>
-              !non50StatesIds.includes(stateId(id)) ? true : false
-            ),
-            states: topologyData.objects.states.geometries.filter(({ id }) =>
-              !non50StatesIds.includes(stateId(id)) ? true : false
-            )
-          })
-        )
-        // remove national geometry from rest of topology data
+
+        // filter out districts and territories leaving 50 US states and their counties
+        // isolate geometry from topodata for processing
+        baseGeometryRef.current = topologyData.objects = {
+          counties: topologyData.objects.counties.geometries.filter(({ id }) =>
+            !non50StatesIds.includes(stateId(id)) ? true : false
+          ),
+          states: topologyData.objects.states.geometries.filter(({ id }) =>
+            !non50StatesIds.includes(stateId(id)) ? true : false
+          )
+        }
+        // remove geometry from topology data
         delete topologyData.objects
-        setBaseTopology(topologyData)
+        // store arcs, bbox, type, and map transform to be passed to d3 as-is
+        baseTopologyRef.current = topologyData
+        // load existing translations from local storage or generate new translations if no store
+        initializeTranslations()
       } catch (error) {
         console.log(error)
       }
     }
     getBaseTopology()
   }, [])
-
-  // we store or generate only the x,y coordinate of the translation. Once basetopology is loaded, set translations for each county
-  useEffect(() => {
-    if (baseTopology) initializeTranslations()
-  }, [baseTopology])
 
   // setting local storage periodically
   useEffect(() => {
@@ -64,6 +63,7 @@ function App() {
     }
   })
 
+  // generate a random translation coord, moderated by the scatterFactor.
   const randomTranslation = () => {
     const scatterFactor = 50
     const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
@@ -75,7 +75,7 @@ function App() {
     const storedTranslations = getStorage()
     setActiveTranslations(storedTranslations)
 
-    return baseGeometry.counties.map((county) => {
+    return baseGeometryRef.current.counties.map((county) => {
       county.properties.transpose = storedTranslations[stateId(county.id)][county.id]
       return county
     })
@@ -93,7 +93,7 @@ function App() {
       }
     }
 
-    const countyGeometry = baseGeometry.counties.map((county) => {
+    const countyGeometry = baseGeometryRef.current.counties.map((county) => {
       const translation = randomTranslation()
       addTranslationToStore(county, translation)
       county.properties.transpose = translation
@@ -144,8 +144,8 @@ function App() {
         <Puzzle
           updateTranslations={updateTranslations}
           resetTranslations={resetTranslations}
-          baseTopology={baseTopology}
-          stateGeometry={baseGeometry.states}
+          baseTopology={baseTopologyRef.current}
+          stateGeometry={baseGeometryRef.current.states}
           translatedCountyGeometry={translatedCountyGeometry}
         />
       )}
