@@ -1,6 +1,6 @@
-const ResetButton = ({ handleReset }) => {
+const ResetButton = ({ resetTranslations }) => {
   return (
-    <button className="reset-btn" onClick={handleReset}>
+    <button className="reset-btn" onClick={() => resetTranslations()}>
       reset puzzle
     </button>
   )

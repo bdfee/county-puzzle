@@ -6,11 +6,11 @@ import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { drag } from 'd3-drag'
 import { feature } from 'topojson-client'
 import { stateDictionary } from '../../dictionaries/state'
-import { stateId } from '../utilities'
+import { stateId } from '../../helpers/utilities'
 import { transformUtility, filterStates, updateZoom } from './svgUtilities'
 
 const Pieces = ({
-  countyGeometry,
+  translatedCountyGeometry,
   stateGeometry,
   baseTopology,
   stateFilter,
@@ -72,7 +72,7 @@ const Pieces = ({
     const width = window.outerWidth
     const height = window.outerHeight
 
-    const counties = { type: 'GeometryCollection', geometries: countyGeometry }
+    const counties = { type: 'GeometryCollection', geometries: translatedCountyGeometry }
     const states = { type: 'GeometryCollection', geometries: stateGeometry }
 
     // geoAlbersUSA projection, center on window/svg
@@ -135,12 +135,12 @@ const Pieces = ({
     countyPaths.call(dragHandler).each(function () {
       transformUtility(select(this), false)
     })
-  }, [countyGeometry])
+  }, [translatedCountyGeometry])
 
   useEffect(() => {
     filterStates(stateFilter)
     updateZoom(transformRef, stateFilter)
-  }, [stateFilter, countyGeometry])
+  }, [stateFilter, translatedCountyGeometry])
 
   return (
     <TransformWrapper ref={transformRef}>

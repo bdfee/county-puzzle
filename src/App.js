@@ -1,149 +1,125 @@
 import { useEffect, useState, useRef } from 'react'
 import { json } from 'd3'
 import { isMobile } from 'react-device-detect'
+
 import Puzzle from './components/puzzle'
+import AudioPlayer from './components/audio-player'
+import Toolbar from './components/puzzle/toolbar'
+
 import { non50StatesIds } from './dictionaries/state'
-import { stateId } from './components/utilities'
-import { setStorage, getStorage, doesStorageItemExist } from './services/localStorage'
-import { snap, snapReverb } from './audio/index'
+import { setStorage, clearStorage } from './services/localStorage'
+import { generateNewTranslations, initializeTranslations } from './helpers/translation.helpers'
+import { stateId } from './helpers/utilities'
+
 import './App.css'
 
 function App() {
-  const audioRef = useRef()
-  const [baseTopology, setBaseTopology] = useState(null) // all static topo
-  const [baseGeometry, setBaseGeometry] = useState(null) // US50 county / state geometry
-  const [countyGeometry, setCountyGeometry] = useState(null) // counties for rendering
-  const [activePieceTranslations, setActivePieceTranslations] = useState({}) // piece translation state
+  const baseGeometryRef = useRef(null)
+  const baseTopologyRef = useRef(null)
+  const audioPlayerRef = useRef()
+
+  const [translatedCountyGeometry, setTranslatedCountyGeometry] = useState(null) // counties for rendering
+  const [activeTranslations, setActiveTranslations] = useState({}) // piece translation state
   const [moveCount, setMoveCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     async function getBaseTopology() {
       try {
         // fetch topojson
         const topologyData = await json('https://cdn.jsdelivr.net/npm/us-atlas/counties-10m.json')
-        // filter out districts and territories, set base geometry of 50 US states
-        setBaseGeometry(
-          (topologyData.objects = {
-            counties: topologyData.objects.counties.geometries.filter(({ id }) =>
-              !non50StatesIds.includes(stateId(id)) ? true : false
-            ),
-            states: topologyData.objects.states.geometries.filter(({ id }) =>
-              !non50StatesIds.includes(stateId(id)) ? true : false
-            )
-          })
-        )
-        // remove national geometry from rest of topology data
+
+        // filter out districts and territories leaving 50 US states and their counties
+        // isolate geometry from topodata for processing
+        baseGeometryRef.current = topologyData.objects = {
+          counties: topologyData.objects.counties.geometries.filter(({ id }) =>
+            !non50StatesIds.includes(stateId(id)) ? true : false
+          ),
+          states: topologyData.objects.states.geometries.filter(({ id }) =>
+            !non50StatesIds.includes(stateId(id)) ? true : false
+          )
+        }
+        // remove geometry from topology data
         delete topologyData.objects
-        setBaseTopology(topologyData)
+        // store arcs, bbox, type, and map transform to be passed to d3 as-is
+        baseTopologyRef.current = topologyData
+        // load existing translations from local storage or generate new translations if no store
+        try {
+          initializeTranslations(
+            setTranslatedCountyGeometry,
+            setActiveTranslations,
+            baseGeometryRef.current
+          )
+        } catch (error) {
+          setError('error initializing puzzle pieces', error)
+        }
       } catch (error) {
-        console.log(error)
+        setError('error fetching topology data', error)
       }
     }
     getBaseTopology()
   }, [])
 
-  // set puzzle piece translations to counties
-  const setCountyGeometryTranslations = () => {
-    let translatedCountyGeometry
-
-    // check for existing coordinates in local storage
-    if (doesStorageItemExist()) {
-      const storedTranslations = getStorage()
-      setActivePieceTranslations(storedTranslations)
-
-      // apply local translation to counties
-      translatedCountyGeometry = baseGeometry.counties.map((county) => {
-        county.properties.transpose = storedTranslations[stateId(county.id)][county.id]
-        return county
-      })
-    } else {
-      const translationStorage = {}
-
-      const scatterFactor = 50
-      const randomTranslation = () => {
-        const randomNegative = () => (Math.random() > 0.5 ? -1 : 1)
-        const randomNumber = () => Math.floor(Math.random() * scatterFactor * randomNegative())
-        return [randomNumber(), randomNumber()]
-      }
-      // apply random translation to each county coords
-      translatedCountyGeometry = baseGeometry.counties.map((county) => {
-        const translation = randomTranslation()
-        county.properties.transpose = translation
-
-        // while mapping counties, populate local storage obj with translation
-        const { id } = county
-        if (stateId(id) in translationStorage) {
-          translationStorage[stateId(id)][id] = translation
-          translationStorage[stateId(id)].count++
-        } else {
-          translationStorage[stateId(id)] = { [id]: translation, count: 0 }
-        }
-
-        return county
-      })
-      setActivePieceTranslations(translationStorage)
-    }
-    setCountyGeometry(translatedCountyGeometry)
-  }
-
-  useEffect(() => {
-    if (baseTopology) setCountyGeometryTranslations()
-  }, [baseTopology])
-
-  // local storage on unload
-  addEventListener('beforeunload', () => {
-    if (moveCount) {
-      setStorage(activePieceTranslations)
-    }
-  })
-
-  // every ten moves set local storage
+  // setting local storage periodically
   useEffect(() => {
     if (moveCount >= 9) {
-      setStorage(activePieceTranslations)
+      setStorage(activeTranslations)
       setMoveCount(0)
     }
   }, [moveCount])
 
-  const updateTranslations = (id, coordsArr) => {
-    const updatedCoords = activePieceTranslations
-    updatedCoords[stateId(id)][id] = coordsArr
-    if (coordsArr[0] === 0 && coordsArr[1] === 0) {
-      updatedCoords[stateId(id)].count--
-      if (updatedCoords[stateId(id)].count === -1) {
-        handlePlay(snapReverb, 0.3)
-      } else {
-        handlePlay(snap, 0.3)
-      }
+  // set local storage on unload
+  addEventListener('beforeunload', () => {
+    if (moveCount) {
+      setStorage(activeTranslations)
     }
-    setActivePieceTranslations(updatedCoords)
+  })
+
+  // update puzzle state, storage, and play audio for located pieces
+  const updateTranslations = (id, [x, y]) => {
+    const updatedCoords = activeTranslations
+    updatedCoords[stateId(id)][id] = [x, y]
+    if (x === 0 && y === 0) {
+      updatedCoords[stateId(id)].count--
+      audioPlayerRef.current.playAudio(updatedCoords[stateId(id)].count)
+    }
+    setActiveTranslations(updatedCoords)
     setMoveCount((moveCount) => moveCount + 1)
   }
 
-  const handlePlay = (src, currentTime) => {
-    const audio = audioRef.current
-    audio.src = src
-    audio.currentTime = currentTime
-    audio.play()
+  const resetTranslations = () => {
+    clearStorage()
+    setTranslatedCountyGeometry(
+      generateNewTranslations(setActiveTranslations, baseGeometryRef.current)
+    )
   }
 
   if (isMobile) {
     return <div>This content is currently supported for desktop</div>
   }
+
+  if (error) {
+    return (
+      <div>
+        <Toolbar />
+        {`Error loading puzzle... ${error}`}
+        <button onClick={() => window.location.reload()}>reload puzzle</button>
+      </div>
+    )
+  }
+
   return (
     <div className="App">
-      {countyGeometry && (
+      {translatedCountyGeometry && (
         <Puzzle
           updateTranslations={updateTranslations}
-          setCountyGeometryTranslations={setCountyGeometryTranslations}
-          baseTopology={baseTopology}
-          stateGeometry={baseGeometry.states}
-          countyGeometry={countyGeometry}
+          resetTranslations={resetTranslations}
+          baseTopology={baseTopologyRef.current}
+          stateGeometry={baseGeometryRef.current.states}
+          translatedCountyGeometry={translatedCountyGeometry}
         />
       )}
-      <audio ref={audioRef}>
-        <source type="audio/mpeg" />
-      </audio>
+      <AudioPlayer ref={audioPlayerRef} />
     </div>
   )
 }

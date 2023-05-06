@@ -1,5 +1,5 @@
 import { select, selectAll } from 'd3-selection'
-import { stateId } from '../utilities'
+import { stateId } from '../../helpers/utilities'
 
 // pass a d3 selection, applys 'located' attributes
 // lowers the county to the bottom then lowers the state to bottom
