@@ -3,22 +3,25 @@ import { json } from 'd3'
 import { isMobile } from 'react-device-detect'
 
 import Puzzle from './components/puzzle'
-import { non50StatesIds } from './dictionaries/state'
-import { stateId } from './components/utilities'
-import { setStorage, clearStorage } from './services/localStorage'
+import AudioPlayer from './components/audio-player'
+import Toolbar from './components/puzzle/toolbar'
 
-import { generateNewTranslations, initializeTranslations } from './translation.helpers'
-import { snap, snapReverb } from './audio/index'
+import { non50StatesIds } from './dictionaries/state'
+import { setStorage, clearStorage } from './services/localStorage'
+import { generateNewTranslations, initializeTranslations } from './helpers/translation.helpers'
+import { stateId } from './helpers/utilities'
+
 import './App.css'
 
 function App() {
-  const audioRef = useRef()
   const baseGeometryRef = useRef(null)
   const baseTopologyRef = useRef(null)
+  const audioPlayerRef = useRef()
 
   const [translatedCountyGeometry, setTranslatedCountyGeometry] = useState(null) // counties for rendering
   const [activeTranslations, setActiveTranslations] = useState({}) // piece translation state
   const [moveCount, setMoveCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     async function getBaseTopology() {
@@ -41,13 +44,17 @@ function App() {
         // store arcs, bbox, type, and map transform to be passed to d3 as-is
         baseTopologyRef.current = topologyData
         // load existing translations from local storage or generate new translations if no store
-        initializeTranslations(
-          setTranslatedCountyGeometry,
-          setActiveTranslations,
-          baseGeometryRef.current
-        )
+        try {
+          initializeTranslations(
+            setTranslatedCountyGeometry,
+            setActiveTranslations,
+            baseGeometryRef.current
+          )
+        } catch (error) {
+          setError('error initializing puzzle pieces', error)
+        }
       } catch (error) {
-        console.log(error)
+        setError('error fetching topology data', error)
       }
     }
     getBaseTopology()
@@ -68,13 +75,13 @@ function App() {
     }
   })
 
-  // if translation = 0,0 play sound. if it is the final county to be located in a given state, play reverbsnap
+  // update puzzle state, storage, and play audio for located pieces
   const updateTranslations = (id, [x, y]) => {
     const updatedCoords = activeTranslations
     updatedCoords[stateId(id)][id] = [x, y]
     if (x === 0 && y === 0) {
       updatedCoords[stateId(id)].count--
-      handlePlay(updatedCoords[stateId(id)].count)
+      audioPlayerRef.current.playAudio(updatedCoords[stateId(id)].count)
     }
     setActiveTranslations(updatedCoords)
     setMoveCount((moveCount) => moveCount + 1)
@@ -87,16 +94,20 @@ function App() {
     )
   }
 
-  const handlePlay = (count) => {
-    const audio = audioRef.current
-    audio.src = count === 0 ? snapReverb : snap
-    audio.currentTime = 0.3
-    audio.play()
-  }
-
   if (isMobile) {
     return <div>This content is currently supported for desktop</div>
   }
+
+  if (error) {
+    return (
+      <div>
+        <Toolbar />
+        {`Error loading puzzle... ${error}`}
+        <button onClick={() => window.location.reload()}>reload puzzle</button>
+      </div>
+    )
+  }
+
   return (
     <div className="App">
       {translatedCountyGeometry && (
@@ -108,9 +119,7 @@ function App() {
           translatedCountyGeometry={translatedCountyGeometry}
         />
       )}
-      <audio ref={audioRef}>
-        <source type="audio/mpeg" />
-      </audio>
+      <AudioPlayer ref={audioPlayerRef} />
     </div>
   )
 }

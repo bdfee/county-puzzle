@@ -6,7 +6,7 @@ import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { drag } from 'd3-drag'
 import { feature } from 'topojson-client'
 import { stateDictionary } from '../../dictionaries/state'
-import { stateId } from '../utilities'
+import { stateId } from '../../helpers/utilities'
 import { transformUtility, filterStates, updateZoom } from './svgUtilities'
 
 const Pieces = ({

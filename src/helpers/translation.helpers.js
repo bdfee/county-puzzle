@@ -1,5 +1,5 @@
-import { getStorage, doesStorageItemExist } from './services/localStorage'
-import { stateId } from './components/utilities'
+import { getStorage, doesStorageItemExist } from '../services/localStorage'
+import { stateId } from './utilities'
 
 // Generates a random translation for each county geometry
 const randomTranslation = () => {
