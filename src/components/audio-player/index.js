@@ -1,7 +1,7 @@
 import { useRef, forwardRef, useImperativeHandle } from 'react'
 import { snap, snapReverb } from './audio.js'
 
-const AudioPlayer = forwardRef((props, ref) => {
+const AudioPlayer = forwardRef((_, ref) => {
   const audioRef = useRef(null)
 
   useImperativeHandle(ref, () => ({
@@ -21,5 +21,7 @@ const AudioPlayer = forwardRef((props, ref) => {
     </audio>
   )
 })
+
 AudioPlayer.displayName = 'AudioPlayer'
+
 export default AudioPlayer
