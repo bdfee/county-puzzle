@@ -107,11 +107,11 @@ function App() {
 
   if (error) {
     return (
-      <div>
+      <>
         <Toolbar />
         {`Error loading puzzle... ${error}`}
         <button onClick={() => window.location.reload()}>reload puzzle</button>
-      </div>
+      </>
     )
   }
 

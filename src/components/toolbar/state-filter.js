@@ -2,7 +2,7 @@ import { stateDictionary } from '../../helpers/state.dictionary'
 
 const StateFilter = ({ setStateFilter }) => {
   return (
-    <div>
+    <>
       <select
         name="states"
         className="state-filter"
@@ -18,7 +18,7 @@ const StateFilter = ({ setStateFilter }) => {
             )
           })}
       </select>
-    </div>
+    </>
   )
 }
 

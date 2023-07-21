@@ -1,6 +1,6 @@
 import { useState, Suspense, lazy } from 'react'
 import ToolTip from './tooltip'
-const LazySvgPieces = lazy(() => import('./svgPieces.js'))
+const LazySvgPieces = lazy(() => import('./svg-pieces.js'))
 
 const Puzzle = ({
   updateTranslations,
@@ -9,7 +9,6 @@ const Puzzle = ({
   stateGeometry,
   stateFilter
 }) => {
-  // const [stateFilter, setStateFilter] = useState('')
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
