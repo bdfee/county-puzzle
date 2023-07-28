@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useLayoutEffect } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { browserName } from 'react-device-detect'
 import { select, selectAll, drag, geoAlbersUsa, geoPath } from '../../helpers/d3.imports'
@@ -64,7 +64,7 @@ const Pieces = ({
       selectAll('.county').attr('pointer-events', 'all')
     })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // remove any svg el from previous render
     select(mapRef.current).selectAll('*').remove()
 
