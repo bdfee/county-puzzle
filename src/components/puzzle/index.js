@@ -12,7 +12,7 @@ const Puzzle = ({
   const [tooltipText, setTooltipText] = useState('')
   const [tooltipCoords, setTooltipCoords] = useState([])
 
-  // handlers for setting tool tip
+  // handlers for setting react tool tip
   const toolTipHandlers = {
     showTip(pageX, pageY, { name }) {
       setTooltipCoords([pageX, pageY])

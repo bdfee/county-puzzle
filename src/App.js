@@ -53,6 +53,8 @@ function App() {
             baseGeometryRef.current
           )
         } catch (error) {
+          // clear local storage on error prior to refetch attempt
+          clearStorage()
           setError('error initializing puzzle pieces', error)
         }
       } catch (error) {
